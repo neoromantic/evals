@@ -6,6 +6,23 @@ It runs eval files as Bun tests, records scorer metrics and token/latency data,
 compares results against baselines, and prints a report that is useful during
 iteration.
 
+## Installation
+
+```bash
+# bun
+bun add @goodit/evals
+
+# npm
+npm install @goodit/evals
+
+# pnpm
+pnpm add @goodit/evals
+```
+
+Requires Bun `>= 1.3.9` as the test runner.
+
+Optional peer dependency: `ai >= 6` (for `traceModel()` token tracking with AI SDK).
+
 ## What this package gives you
 
 - Declarative eval API (`evalSuite`) for multi-case checks.
