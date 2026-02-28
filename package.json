@@ -1,0 +1,54 @@
+{
+  "name": "@goodit/evals",
+  "version": "0.1.0",
+  "description": "Pragmatic eval framework for LLM features. Runs eval files as Bun tests with scorers, baselines, and reporting.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neoromantic/evals.git"
+  },
+  "keywords": ["evals", "llm", "ai", "testing", "bun", "scorers", "baseline"],
+  "scripts": {
+    "eval": "bun src/run.ts",
+    "eval:update": "UPDATE_BASELINE=1 bun src/run.ts",
+    "test": "bun test src/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./src/index.ts",
+      "bun": "./src/index.ts",
+      "default": "./dist/src/index.js"
+    },
+    "./preload": {
+      "types": "./dist/src/preload.d.ts",
+      "import": "./src/preload.ts",
+      "bun": "./src/preload.ts",
+      "default": "./dist/src/preload.js"
+    }
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "ai": ">=6"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@ai-sdk/openai": ">=1",
+    "@types/bun": "^1.2.0",
+    "ai": ">=6",
+    "autoevals": ">=0.0.100",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,84 @@
+{
+  "_meta": {
+    "updatedAt": "2026-02-26T16:30:21.931Z",
+    "evalFile": "capitals.eval.ts"
+  },
+  "_aggregate": {
+    "tokens.input.sum": 168,
+    "tokens.output.sum": 21,
+    "tokens.total.sum": 189,
+    "score.ExactMatch.avg": 1,
+    "score.ExactMatch.min": 1,
+    "score.Case Insensitive Match.avg": 1,
+    "score.Case Insensitive Match.min": 1,
+    "score.Contains Expected.avg": 1,
+    "score.Contains Expected.min": 1,
+    "latency.sum": 6241.057917,
+    "latency.avg": 891.5797024285714,
+    "test.count": 7,
+    "test.pass_rate": 1
+  },
+  "France": {
+    "tokens.input": 24,
+    "tokens.output": 2,
+    "tokens.total": 26,
+    "score.ExactMatch": 1,
+    "score.Case Insensitive Match": 1,
+    "score.Contains Expected": 1,
+    "latency": 911.6927919999999
+  },
+  "Germany": {
+    "tokens.input": 24,
+    "tokens.output": 2,
+    "tokens.total": 26,
+    "score.ExactMatch": 1,
+    "score.Case Insensitive Match": 1,
+    "score.Contains Expected": 1,
+    "latency": 708.7952499999999
+  },
+  "Japan": {
+    "tokens.input": 24,
+    "tokens.output": 2,
+    "tokens.total": 26,
+    "score.ExactMatch": 1,
+    "score.Case Insensitive Match": 1,
+    "score.Contains Expected": 1,
+    "latency": 711.7262080000003
+  },
+  "Brazil": {
+    "tokens.input": 24,
+    "tokens.output": 3,
+    "tokens.total": 27,
+    "score.ExactMatch": 1,
+    "score.Case Insensitive Match": 1,
+    "score.Contains Expected": 1,
+    "latency": 808.2057089999998
+  },
+  "Australia": {
+    "tokens.input": 24,
+    "tokens.output": 3,
+    "tokens.total": 27,
+    "score.ExactMatch": 1,
+    "score.Case Insensitive Match": 1,
+    "score.Contains Expected": 1,
+    "latency": 1199.7108330000005
+  },
+  "Myanmar": {
+    "tokens.input": 24,
+    "tokens.output": 6,
+    "tokens.total": 30,
+    "score.ExactMatch": 1,
+    "score.Case Insensitive Match": 1,
+    "score.Contains Expected": 1,
+    "latency": 842.011458
+  },
+  "Kazakhstan": {
+    "tokens.input": 24,
+    "tokens.output": 3,
+    "tokens.total": 27,
+    "score.ExactMatch": 1,
+    "score.Case Insensitive Match": 1,
+    "score.Contains Expected": 1,
+    "latency": 1058.9156670000002
+  }
+}
