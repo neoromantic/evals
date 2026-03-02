@@ -1,2 +1,10 @@
 #!/usr/bin/env sh
-exec bun "$(dirname "$0")/../src/run.ts" "$@"
+# Resolve symlinks to find the real package directory
+SCRIPT="$0"
+while [ -L "$SCRIPT" ]; do
+  DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
+  SCRIPT="$(readlink "$SCRIPT")"
+  case "$SCRIPT" in /*) ;; *) SCRIPT="$DIR/$SCRIPT" ;; esac
+done
+DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
+exec bun "$DIR/../src/run.ts" "$@"
