@@ -1,13 +1,21 @@
 {
   "name": "@goodit/evals",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Pragmatic eval framework for LLM features. Runs eval files as Bun tests with scorers, baselines, and reporting.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/neoromantic/evals.git"
+    "url": "git+https://github.com/neoromantic/evals.git"
   },
-  "keywords": ["evals", "llm", "ai", "testing", "bun", "scorers", "baseline"],
+  "keywords": [
+    "evals",
+    "llm",
+    "ai",
+    "testing",
+    "bun",
+    "scorers",
+    "baseline"
+  ],
   "scripts": {
     "eval": "bun src/run.ts",
     "eval:update": "UPDATE_BASELINE=1 bun src/run.ts",
@@ -16,7 +24,7 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "bin": {
-    "goodit-evals": "./bin/goodit-evals.js"
+    "goodit-evals": "bin/goodit-evals.js"
   },
   "type": "module",
   "exports": {
