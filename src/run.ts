@@ -3,7 +3,7 @@ import { tmpdir } from "node:os"
 import { join, relative, resolve } from "node:path"
 import { Glob } from "bun"
 
-const ROOT = resolve(import.meta.dir, "../../..") // monorepo root (packages/evals/src → root)
+const ROOT = process.cwd()
 const MIN_BUN_VERSION_FOR_CONCURRENT_CASES = "1.3.9"
 const DOTENV_FILENAMES = [".env", ".env.local"] as const
 
@@ -212,7 +212,7 @@ async function main() {
   ]
 
   const jsonOutputDir = jsonOutput
-    ? mkdtempSync(join(tmpdir(), "jupid-evals-json-"))
+    ? mkdtempSync(join(tmpdir(), "goodit-evals-json-"))
     : null
   const jsonOutputPath = jsonOutputDir
     ? join(jsonOutputDir, "eval-results.json")
