@@ -1,6 +1,6 @@
 {
   "name": "@goodit/evals",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Pragmatic eval framework for LLM features. Runs eval files as Bun tests with scorers, baselines, and reporting.",
   "license": "MIT",
   "repository": {
@@ -24,7 +24,7 @@
     "clean": "rm -rf dist .turbo *.tsbuildinfo"
   },
   "bin": {
-    "goodit-evals": "bin/goodit-evals.js"
+    "goodit-evals": "bin/goodit-evals"
   },
   "type": "module",
   "exports": {
