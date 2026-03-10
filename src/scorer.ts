@@ -1,8 +1,9 @@
-import type { Scorer, ScorerInput } from "./types"
+import type { Scorer, ScorerInput, ScorerKind } from "./types"
 
 interface ScorerOpts<TInput = string, TOutput = string, TExpected = TOutput> {
   name: string
   description?: string
+  kind?: ScorerKind
   scorer: (
     input: ScorerInput<TInput, TOutput, TExpected>,
   ) =>
@@ -21,6 +22,7 @@ export function createScorer<
   return {
     name: opts.name,
     description: opts.description,
+    kind: opts.kind,
     scorer: opts.scorer,
   }
 }

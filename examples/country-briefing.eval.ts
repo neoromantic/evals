@@ -1,4 +1,4 @@
-import { createScorer, evalSuite } from "@goodit/evals"
+import { createLLMJudgeScorer, createScorer, evalSuite } from "@goodit/evals"
 import { Factuality } from "autoevals"
 import { generateCountryBriefing } from "./country-briefing"
 
@@ -7,68 +7,32 @@ interface BriefingExpected {
   requiredTerms: string[]
 }
 
-const FACTUALITY_CHOICE_MEANINGS = {
-  A: "Submission is a subset of expert answer and fully consistent",
-  B: "Submission is a superset of expert answer and fully consistent",
-  C: "Submission matches all expert details",
-  D: "Submission disagrees with expert answer",
-  E: "Differences do not affect factuality",
-} as const
-
-const FactualityScorer = createScorer<string, string, BriefingExpected>({
+const FactualityScorer = createLLMJudgeScorer<
+  string,
+  string,
+  BriefingExpected
+>({
   name: "Factuality",
   description:
     "LLM judge: factual consistency against reference briefing (allows extra consistent facts)",
-  scorer: async ({ input, output, expected }) => {
+  judge: async ({ input, output, expected }) => {
     const reference = expected?.reference
     if (!reference) {
-      return {
-        score: 0,
-        metadata: { error: "Missing expected.reference for Factuality scorer" },
-      }
+      return { score: 0, metadata: { error: "Missing expected.reference" } }
     }
 
-    try {
-      const result = await Factuality({
-        input: `Country briefing request for: ${input}`,
-        output,
-        expected: reference,
-      })
-      const rawMetadata =
-        typeof result.metadata === "object" && result.metadata
-          ? (result.metadata as { choice?: unknown; rationale?: unknown })
-          : {}
-      const choice =
-        typeof rawMetadata.choice === "string" ? rawMetadata.choice : undefined
-      const choiceMeaning =
-        choice &&
-        choice in FACTUALITY_CHOICE_MEANINGS &&
-        FACTUALITY_CHOICE_MEANINGS[
-          choice as keyof typeof FACTUALITY_CHOICE_MEANINGS
-        ]
-      const rawScore = result.score ?? 0
-      // For this example, consistent supersets are considered fully acceptable.
-      const normalizedScore = choice === "B" ? 1 : rawScore
+    const result = await Factuality({
+      input: `Country briefing request for: ${input}`,
+      output,
+      expected: reference,
+    })
 
-      return {
-        score: normalizedScore,
-        metadata: {
-          ...rawMetadata,
-          rawScore,
-          normalizedScore,
-          choiceMeaning,
-          scoreInterpretation:
-            "Raw rubric: 1.00=C/E, 0.60=B, 0.40=A, 0.00=D. This example normalizes B to 1.00.",
-        },
-      }
-    } catch (error) {
-      return {
-        score: 0,
-        metadata: {
-          error: error instanceof Error ? error.message : String(error),
-        },
-      }
-    }
+    const rawScore = result.score ?? 0
+    const choice = (result.metadata as any)?.choice as string | undefined
+    // Consistent supersets (choice B) are fully acceptable for this task
+    const score = choice === "B" ? 1 : rawScore
+
+    return { score, metadata: { ...result.metadata, rawScore } }
   },
 })
 

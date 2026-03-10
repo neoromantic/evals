@@ -2,6 +2,13 @@
 
 export { collector } from "./collector"
 export { evalSuite } from "./eval-suite"
+export {
+  createLLMJudgeScorer,
+  MatchesIntent,
+  SemanticContains,
+  SemanticMatch,
+  wrapAutoeval,
+} from "./llm-scorer"
 export { measure, score, suite } from "./measure"
 export {
   Contains,
@@ -26,6 +33,7 @@ export type {
   MeasureResult,
   Scorer,
   ScorerInput,
+  ScorerKind,
   ScorerResult,
   SuiteConfig,
   SuiteReport,

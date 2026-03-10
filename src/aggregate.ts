@@ -11,7 +11,7 @@ type MetricKind =
   | "unknown"
 
 function classifyMetric(name: string): MetricKind {
-  if (name === "latency" || name.startsWith("ttfb")) return "latency"
+  if (name === "latency" || name.startsWith("latency.") || name.startsWith("ttfb")) return "latency"
   if (name.startsWith("throughput")) return "throughput"
   if (name.startsWith("tokens.")) return "tokens"
   if (name.startsWith("score.")) return "score"

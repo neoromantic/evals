@@ -1,6 +1,6 @@
 {
   "name": "@goodit/evals",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Pragmatic eval framework for LLM features. Runs eval files as Bun tests with scorers, baselines, and reporting.",
   "license": "MIT",
   "repository": {
@@ -49,10 +49,14 @@
     "LICENSE"
   ],
   "peerDependencies": {
-    "ai": ">=6"
+    "ai": ">=6",
+    "zod": ">=3"
   },
   "peerDependenciesMeta": {
     "ai": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },

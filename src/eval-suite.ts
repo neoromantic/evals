@@ -379,6 +379,10 @@ async function runSingleEval<TInput, TOutput, TExpected>(
 
       // Run the task
       const output = await config.task(item.input)
+
+      m.taskEnd()
+      collector.setPhase("scoring")
+
       collector.setTestContext({
         input: item.input,
         output,
@@ -411,6 +415,7 @@ async function runSingleEval<TInput, TOutput, TExpected>(
           score: scoreValue,
           description: scorer.description,
           metadata,
+          kind: scorer.kind,
         })
       }
 

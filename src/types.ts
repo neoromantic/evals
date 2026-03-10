@@ -1,3 +1,7 @@
+// --- Scorer kind ---
+
+export type ScorerKind = "heuristic" | "judge"
+
 // --- Core metric types ---
 
 export interface MetricRecord {
@@ -21,11 +25,13 @@ export interface ScorerResult {
   name: string
   description?: string
   metadata?: unknown // Diagnostic info
+  kind?: ScorerKind
 }
 
 export type Scorer<TInput = string, TOutput = string, TExpected = TOutput> = {
   name: string
   description?: string
+  kind?: ScorerKind
   scorer: (
     input: ScorerInput<TInput, TOutput, TExpected>,
   ) =>
@@ -82,6 +88,7 @@ export interface MeasureContext {
     totalTokens?: number
   }): void
   weight(w: number): void
+  taskEnd(): void
 }
 
 export interface MeasureResult<T> {
@@ -102,6 +109,8 @@ export interface TestMetrics {
   input?: unknown
   output?: unknown
   expected?: unknown
+  /** @internal Phase tracking for token routing */
+  _phase?: "task" | "scoring"
 }
 
 // --- Baseline types ---

@@ -1,4 +1,11 @@
-import { createScorer, ExactMatch, evalSuite } from "@goodit/evals"
+import { openai } from "@ai-sdk/openai"
+import {
+  createScorer,
+  ExactMatch,
+  evalSuite,
+  SemanticMatch,
+  traceModel,
+} from "@goodit/evals"
 import { getCapital } from "./capitals"
 
 evalSuite("Country Capitals", {
@@ -26,6 +33,10 @@ evalSuite("Country Capitals", {
       description: "Output contains the expected capital somewhere",
       scorer: ({ output, expected }) =>
         output.toLowerCase().includes((expected ?? "").toLowerCase()) ? 1 : 0,
+    }),
+    SemanticMatch({
+      model: traceModel(openai("gpt-4o-mini")),
+      threshold: 0.8,
     }),
   ],
 })

@@ -6,6 +6,7 @@ export async function measure<T>(
 ): Promise<MeasureResult<T>> {
   const start = performance.now()
   let error = false
+  let taskEndTimestamp: number | undefined
 
   const ctx: MeasureContext = {
     metric(name, value, unit) {
@@ -20,9 +21,15 @@ export async function measure<T>(
     weight(w) {
       collector.setWeight(w)
     },
+    taskEnd() {
+      if (!taskEndTimestamp) {
+        taskEndTimestamp = performance.now()
+      }
+    },
   }
 
   let result: T
+  let end = 0
   try {
     result = await fn(ctx)
   } catch (err) {
@@ -31,8 +38,16 @@ export async function measure<T>(
     collector.setTestPassed(false)
     throw err // Re-throw so bun test catches it
   } finally {
-    const latency = performance.now() - start
-    collector.recordMetric("latency", latency, "ms")
+    end = performance.now()
+
+    if (taskEndTimestamp) {
+      collector.recordMetric("latency", taskEndTimestamp - start, "ms")
+      collector.recordMetric("latency.scoring", end - taskEndTimestamp, "ms")
+      collector.recordMetric("latency.total", end - start, "ms")
+    } else {
+      collector.recordMetric("latency", end - start, "ms")
+    }
+
     if (error) {
       collector.recordMetric("error", 1)
     }
@@ -41,7 +56,7 @@ export async function measure<T>(
   return {
     result,
     metrics: {
-      latency: performance.now() - start,
+      latency: end - start,
       error,
     },
   }

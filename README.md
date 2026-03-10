@@ -21,7 +21,7 @@ pnpm add @goodit/evals
 
 Requires Bun `>= 1.3.9` as the test runner.
 
-Optional peer dependency: `ai >= 6` (for `traceModel()` token tracking with AI SDK).
+Optional peer dependencies: `ai >= 6` (for `traceModel()` and semantic scorers), `zod >= 3` (for semantic scorers).
 
 ## What this package gives you
 
@@ -205,6 +205,25 @@ Return forms supported:
 - `{ score: number, metadata?: unknown }`
 - async versions of both
 
+### Scorer Kind
+
+Scorers have an optional `kind` field (`"heuristic" | "judge"`):
+
+```ts
+const myScorer = createScorer({
+  name: "MyLLMScorer",
+  kind: "judge",
+  scorer: async ({ output }) => { /* ... */ },
+})
+```
+
+`kind: "judge"` enables:
+- `[judge]` badge in verbose reports
+- Token/latency phase separation in `evalSuite`
+
+Built-in scorers (ExactMatch, Contains, etc.) omit `kind` — they are heuristic by default.
+`createLLMJudgeScorer` and `wrapAutoeval` automatically set `kind: "judge"`.
+
 ### Imperative APIs (`measure`, `score`, `suite`)
 
 Use imperative APIs when eval flow does not fit `evalSuite`.
@@ -245,8 +264,10 @@ Built-in aggregate keys are inferred by metric name:
 | Metric pattern | Aggregates |
 | --- | --- |
 | `latency`, `ttfb*` | `.sum`, `.avg` |
+| `latency.scoring`, `latency.total` | `.sum`, `.avg`, `.min`, `.max`, `.p50`, `.p95` |
 | `throughput*` | `.avg` |
 | `tokens.*` | `.sum` |
+| `tokens.scorer.*` | `.sum`, `.avg`, `.min`, `.max`, `.p50`, `.p95` |
 | `score.*` | `.avg`, `.min` |
 | `error` | `.count`, `.rate` |
 | always | `test.count`, `test.pass_rate` |
@@ -262,6 +283,19 @@ Weight behavior:
 - If a case has `score.*` metrics, it passes only when all are `>= passThreshold`.
 - If a case has no `score.*` metrics, pass/fail follows test success only.
 
+## Latency Semantics
+
+When using `evalSuite`, latency is automatically split:
+
+- `latency` — task execution time only (excludes scorer time)
+- `latency.scoring` — time spent running scorers
+- `latency.total` — combined task + scorer time
+
+For evals with only heuristic scorers, `latency.scoring` is near-zero.
+For evals with LLM judge scorers, this separation shows true task performance.
+
+When using `measure()` directly, call `m.taskEnd()` before running scorers to enable the split. Without `taskEnd()`, a single `latency` metric is recorded (backward compatible).
+
 ## Built-in Scorers
 
 - `ExactMatch`
@@ -271,6 +305,70 @@ Weight behavior:
 - `JsonMatch`
 - `NumericCloseness`
 - `LengthRatio`
+
+## LLM Judge Scorers
+
+### `createLLMJudgeScorer(opts)`
+
+Model-agnostic wrapper for LLM-based scoring with retry logic:
+
+```ts
+import { createLLMJudgeScorer } from "@goodit/evals"
+
+const ToneScorer = createLLMJudgeScorer({
+  name: "ToneCheck",
+  description: "Checks if output maintains professional tone",
+  judge: async ({ output }) => {
+    const result = await generateObject({
+      model: myModel,
+      schema: z.object({ score: z.number(), rationale: z.string() }),
+      prompt: `Rate the professionalism of: ${output}`,
+    })
+    return { score: result.object.score, metadata: result.object }
+  },
+  retries: 2,        // default: 2
+  retryDelayMs: 1000, // default: 1000 (exponential backoff)
+  errorScore: 0,     // default: 0 (score on exhausted retries)
+})
+```
+
+All LLM judge scorers automatically get `kind: "judge"`, which:
+- Shows `[judge]` badge in verbose scorer details
+- Separates scorer tokens into `tokens.scorer.*` metrics
+- Separates scorer latency into `latency.scoring`
+
+### `wrapAutoeval(opts)`
+
+Adapter for [autoevals](https://github.com/braintrustdata/autoevals) functions:
+
+```ts
+import { wrapAutoeval } from "@goodit/evals"
+import { Factuality } from "autoevals"
+
+const FactualityScorer = wrapAutoeval({
+  name: "Factuality",
+  description: "LLM judge: factual consistency",
+  autoeval: Factuality,
+  normalizeScore: (raw) => raw >= 0.6 ? 1 : 0,
+})
+```
+
+### Semantic Helpers
+
+Built-in LLM judge scorers using AI SDK `generateObject`. Require `ai` and `zod` peer dependencies.
+
+```ts
+import { SemanticMatch, MatchesIntent, SemanticContains } from "@goodit/evals"
+
+// Semantic similarity between output and expected
+const similarity = SemanticMatch({ model: myModel, threshold: 0.7 })
+
+// Check if output matches a stated intent
+const intentCheck = MatchesIntent({ model: myModel, intent: "Provides a helpful greeting" })
+
+// Check if output contains specific concepts
+const conceptCheck = SemanticContains({ model: myModel, concepts: ["price", "availability"] })
+```
 
 ## Trace and Tokens
 
@@ -283,6 +381,15 @@ This records:
 - `tokens.total`
 
 The report aggregates these automatically.
+
+### Token Phase Separation
+
+When using `evalSuite`, tokens are automatically separated by phase:
+
+- **Task phase** (`tokens.input`, `tokens.output`, `tokens.total`): tokens from your task function
+- **Scoring phase** (`tokens.scorer.input`, `tokens.scorer.output`, `tokens.scorer.total`): tokens from LLM-based scorers
+
+This separation happens automatically — no code changes needed.
 
 ## CLI Flags and Env Vars
 
@@ -368,7 +475,9 @@ Default tolerances used when baseline entry is a plain number:
 | Metric pattern | Default tolerance |
 | --- | --- |
 | `latency*`, `ttfb*` | `0.20` |
+| `latency.scoring*`, `latency.total*` | `0.20` |
 | `tokens.*` | `0.10` |
+| `tokens.scorer.*` | `0.10` |
 | `score.*` | `0.05` |
 | `throughput*` | `0.15` |
 | `error*` | `0.00` |
@@ -385,6 +494,8 @@ Use consistent names so aggregation and baseline comparison behave as expected.
 | Latency | `latency`, `ttfb*` | `ms` | lower |
 | Throughput | `throughput*` | custom (`items/s`, `chars/s`) | higher |
 | Tokens | `tokens.input`, `tokens.output`, `tokens.total` | count | lower |
+| Scorer Tokens | `tokens.scorer.input`, `tokens.scorer.output`, `tokens.scorer.total` | count | lower |
+| Scoring Latency | `latency.scoring`, `latency.total` | `ms` | lower |
 | Quality | `score.<name>` | `0..1` | higher |
 | Errors | `error` | `0` or `1` | lower |
 

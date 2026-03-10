@@ -104,15 +104,24 @@ class Collector {
   }): void {
     const entry = this.currentEntry()
     if (!entry) return
-    const currentInput = numberMetric(entry.metrics["tokens.input"])
-    const currentOutput = numberMetric(entry.metrics["tokens.output"])
-    const currentTotal = numberMetric(entry.metrics["tokens.total"])
+    const phase = entry._phase
+    const prefix = phase === "scoring" ? "tokens.scorer" : "tokens"
+
+    const currentInput = numberMetric(entry.metrics[`${prefix}.input`])
+    const currentOutput = numberMetric(entry.metrics[`${prefix}.output`])
+    const currentTotal = numberMetric(entry.metrics[`${prefix}.total`])
     const nextTotal =
       usage.totalTokens ?? usage.promptTokens + usage.completionTokens
 
-    entry.metrics["tokens.input"] = currentInput + usage.promptTokens
-    entry.metrics["tokens.output"] = currentOutput + usage.completionTokens
-    entry.metrics["tokens.total"] = currentTotal + nextTotal
+    entry.metrics[`${prefix}.input`] = currentInput + usage.promptTokens
+    entry.metrics[`${prefix}.output`] = currentOutput + usage.completionTokens
+    entry.metrics[`${prefix}.total`] = currentTotal + nextTotal
+  }
+
+  setPhase(phase: "task" | "scoring"): void {
+    const entry = this.currentEntry()
+    if (!entry) return
+    entry._phase = phase
   }
 
   setWeight(weight: number): void {
@@ -213,7 +222,7 @@ class Collector {
     suiteName: string,
     testName: string,
   ): TestMetrics {
-    return {
+    const entry: TestMetrics = {
       suiteKey,
       suiteName,
       testName,
@@ -222,6 +231,8 @@ class Collector {
       passed: true,
       scorerResults: [],
     }
+    entry._phase = "task"
+    return entry
   }
 }
 
