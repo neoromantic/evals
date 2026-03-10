@@ -47,6 +47,25 @@ function min(entries: AggregationEntry[]): number {
   return result
 }
 
+function max(entries: AggregationEntry[]): number {
+  let result = Number.NEGATIVE_INFINITY
+  for (const e of entries) {
+    if (e.value > result) result = e.value
+  }
+  return result
+}
+
+function percentile(entries: AggregationEntry[], p: number): number {
+  if (entries.length === 0) return 0
+  const sorted = entries.map((e) => e.value).sort((a, b) => a - b)
+  const index = (p / 100) * (sorted.length - 1)
+  const lower = Math.floor(index)
+  const upper = Math.ceil(index)
+  if (lower === upper) return sorted[lower]!
+  const fraction = index - lower
+  return sorted[lower]! * (1 - fraction) + sorted[upper]! * fraction
+}
+
 function weightedRate(entries: AggregationEntry[]): number {
   // Same formula as weightedAvg — values are 0 or 1
   return weightedAvg(entries)
@@ -80,18 +99,18 @@ function entriesForMetric(
 
 // --- Aggregation rule lookup ---
 
-type AggOp = "sum" | "avg" | "min" | "count" | "rate"
+type AggOp = "sum" | "avg" | "min" | "max" | "p50" | "p95" | "count" | "rate"
 
 function aggregationsForKind(kind: MetricKind): AggOp[] {
   switch (kind) {
     case "latency":
-      return ["sum", "avg"]
+      return ["sum", "avg", "min", "max", "p50", "p95"]
     case "throughput":
       return ["avg"]
     case "tokens":
-      return ["sum"]
+      return ["sum", "avg", "min", "max", "p50", "p95"]
     case "score":
-      return ["avg", "min"]
+      return ["avg", "min", "max", "p50", "p95"]
     case "error":
       return ["count", "rate"]
     default:
@@ -107,6 +126,12 @@ function computeAgg(op: AggOp, entries: AggregationEntry[]): number {
       return weightedAvg(entries)
     case "min":
       return min(entries)
+    case "max":
+      return max(entries)
+    case "p50":
+      return percentile(entries, 50)
+    case "p95":
+      return percentile(entries, 95)
     case "count":
       return sum(entries)
     case "rate":

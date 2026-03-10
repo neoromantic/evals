@@ -9,6 +9,10 @@ const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`
 const red = (s: string) => `\x1b[31m${s}\x1b[39m`
 const cyan = (s: string) => `\x1b[36m${s}\x1b[39m`
 
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, "")
+}
+
 // --- Formatting helpers ---
 
 const LINE_W = 60
@@ -31,7 +35,7 @@ export function displayMetricName(name: string): string {
   if (name === "tokens.total") return "Total Tokens"
 
   // score.X.avg → X (avg), score.X.min → X (min)
-  const scoreAgg = name.match(/^score\.(.+)\.(avg|min|sum|count|rate)$/)
+  const scoreAgg = name.match(/^score\.(.+)\.(avg|min|max|p50|p95|sum|count|rate)$/)
   if (scoreAgg) return `${scoreAgg[1]} (${scoreAgg[2]})`
 
   // score.X → X (per-test, no agg suffix)
@@ -71,8 +75,15 @@ export function formatMetricValue(name: string, value: number): string {
     return `${Math.round(value)} ms`
   }
 
-  // Score / pass_rate → show as decimal (0.85)
-  if (lower.startsWith("score") || lower.endsWith("pass_rate")) {
+  // Pass rate → PASS/FAIL/percentage
+  if (lower.endsWith("pass_rate")) {
+    if (value === 1) return green("PASS")
+    if (value === 0) return red("FAIL")
+    return yellow(`${Math.round(value * 100)}%`)
+  }
+
+  // Score → decimal (combined line renderer handles boolean-aware formatting)
+  if (lower.startsWith("score")) {
     return value.toFixed(2)
   }
 
@@ -115,18 +126,12 @@ function metricLabelWidth(names: string[]): number {
   )
 }
 
-function testsWithPerTestChanges(report: SuiteReport): string[] {
-  return Object.keys(report.perTestComparisons).filter(
-    (testName) => report.perTestComparisons[testName]!.length > 0,
-  )
-}
-
 function appendBaselineComparison(
   line: string,
   metricName: string,
   currentComparison: ComparisonResult | undefined,
 ): string {
-  if (!currentComparison) {
+  if (!currentComparison || currentComparison.change === 0) {
     return line
   }
 
@@ -365,6 +370,155 @@ function printVerboseScorerDetails(report: SuiteReport): void {
   }
 }
 
+function detectBooleanScores(report: SuiteReport): Set<string> {
+  const booleans = new Set<string>()
+  const nonBooleans = new Set<string>()
+  for (const test of report.tests) {
+    for (const [name, value] of Object.entries(test.metrics)) {
+      if (!name.startsWith("score.")) continue
+      if (nonBooleans.has(name)) continue
+      if (value === 0 || value === 1) {
+        booleans.add(name)
+      } else {
+        nonBooleans.add(name)
+        booleans.delete(name)
+      }
+    }
+  }
+  return booleans
+}
+
+function formatScoreValue(value: number, isBoolean: boolean): string {
+  if (isBoolean) {
+    if (value === 1) return green("PASS")
+    if (value === 0) return red("FAIL")
+    return yellow(`${Math.round(value * 100)}%`)
+  }
+  return value.toFixed(2)
+}
+
+interface MetricGroup {
+  baseName: string
+  displayLabel: string
+  kind: "score" | "latency" | "tokens"
+  primary: number
+  primaryOp: string
+  min: number
+  max: number
+  p50: number
+  p95: number
+  isBoolean: boolean
+}
+
+function groupMetricAggregates(
+  aggregates: Record<string, number>,
+  booleanScores: Set<string>,
+): MetricGroup[] {
+  const groups = new Map<string, Record<string, number>>()
+
+  for (const [key, value] of Object.entries(aggregates)) {
+    const match = key.match(
+      /^(score\..+|latency|ttfb|tokens\.\w+)\.(avg|min|max|p50|p95|sum)$/,
+    )
+    if (!match) continue
+    const baseName = match[1]!
+    const op = match[2]!
+    const group = groups.get(baseName) ?? {}
+    group[op] = value
+    groups.set(baseName, group)
+  }
+
+  const result: MetricGroup[] = []
+  for (const [baseName, ops] of groups) {
+    let kind: "score" | "latency" | "tokens"
+    let primaryOp: string
+
+    if (baseName.startsWith("score.")) {
+      kind = "score"
+      primaryOp = "avg"
+    } else if (baseName === "latency" || baseName === "ttfb") {
+      kind = "latency"
+      primaryOp = "avg"
+    } else {
+      kind = "tokens"
+      primaryOp = "sum"
+    }
+
+    const primary = ops[primaryOp]
+    if (primary === undefined) continue
+
+    const displayLabel =
+      kind === "score"
+        ? baseName.replace(/^score\./, "")
+        : displayMetricName(baseName)
+
+    result.push({
+      baseName,
+      displayLabel,
+      kind,
+      primary,
+      primaryOp,
+      min: ops.min ?? 0,
+      max: ops.max ?? 0,
+      p50: ops.p50 ?? 0,
+      p95: ops.p95 ?? 0,
+      isBoolean: kind === "score" && booleanScores.has(baseName),
+    })
+  }
+
+  result.sort((a, b) => {
+    const priority = (g: MetricGroup) =>
+      g.kind === "score" ? 1 : g.kind === "latency" ? 2 : 3
+    return priority(a) - priority(b)
+  })
+
+  return result
+}
+
+function isGroupedAggregateKey(key: string): boolean {
+  return /^(score\..+|latency|ttfb|tokens\.\w+)\.(avg|min|max|p50|p95|sum)$/.test(key)
+}
+
+function formatMetricGroupLine(
+  group: MetricGroup,
+  labelWidth: number,
+): string {
+  const fmtValue = (v: number) => {
+    if (group.kind === "score") return formatScoreValue(v, group.isBoolean)
+    return formatMetricValue(group.baseName, v)
+  }
+
+  const label = padRight(group.displayLabel, labelWidth)
+  const mainValue = padRight(fmtValue(group.primary), 10)
+
+  if (group.min === group.max) {
+    return `   ${label}${mainValue}`
+  }
+
+  const stats = [
+    `${dim("min")} ${fmtValue(group.min)}`,
+    `${dim("max")} ${fmtValue(group.max)}`,
+    `${dim("p50")} ${fmtValue(group.p50)}`,
+    `${dim("p95")} ${fmtValue(group.p95)}`,
+  ].join("  ")
+  return `   ${label}${mainValue}${stats}`
+}
+
+function appendGroupBaselineComparison(
+  line: string,
+  group: MetricGroup,
+  comp: ComparisonResult | undefined,
+): string {
+  if (!comp || comp.change === 0) return line
+
+  const fmtBaseline =
+    group.kind === "score"
+      ? formatScoreValue(comp.baseline, group.isBoolean)
+      : formatMetricValue(group.baseName, comp.baseline)
+
+  return `${line}  ${dim("was")} ${padRight(fmtBaseline, 8)}${formatChange(comp)}`
+}
+
 export function printSuiteReport(
   report: SuiteReport,
   evalFile?: string,
@@ -396,47 +550,84 @@ export function printSuiteReport(
   if (aggEntries.length > 0) {
     console.log(bold(" AGGREGATES"))
 
-    // Compute dynamic column width from display names
-    const nameWidth = metricLabelWidth(
-      aggEntries.map(([metricName]) => metricName),
+    const booleanScores = detectBooleanScores(report)
+    const metricGroups = groupMetricAggregates(
+      report.aggregates,
+      booleanScores,
+    )
+    const nonGroupedEntries = aggEntries.filter(
+      ([key]) => !isGroupedAggregateKey(key),
     )
 
-    for (const [name, value] of aggEntries) {
+    const groupLabelWidth =
+      metricGroups.length > 0
+        ? Math.max(
+            ...metricGroups.map((g) => g.displayLabel.length),
+            12,
+          ) + 2
+        : 0
+    const nonGroupedNameWidth =
+      nonGroupedEntries.length > 0
+        ? metricLabelWidth(nonGroupedEntries.map(([name]) => name))
+        : 0
+    const nameWidth = Math.max(groupLabelWidth, nonGroupedNameWidth)
+
+    for (const group of metricGroups) {
+      let line = formatMetricGroupLine(group, nameWidth)
+      const primaryKey = `${group.baseName}.${group.primaryOp}`
+      const comp = aggComparisons.find((c) => c.metric === primaryKey)
+      line = appendGroupBaselineComparison(line, group, comp)
+      console.log(line)
+    }
+
+    for (const [name, value] of nonGroupedEntries) {
       const label = displayMetricName(name)
       const formatted = formatMetricValue(name, value)
       const comp = aggComparisons.find((c) => c.metric === name)
-
       let line = `   ${padRight(label, nameWidth)}${padRight(formatted, 10)}`
       line = appendBaselineComparison(line, name, comp)
-
       console.log(line)
     }
   }
 
-  // Per-test changes
-  const testsWithChanges = testsWithPerTestChanges(report)
+  // Per-test changes — filter zero-change, use PASS/FAIL for boolean scores
+  const booleanScoresForPerTest = detectBooleanScores(report)
+  const perTestFiltered: [string, ComparisonResult[]][] = []
+  for (const testName of Object.keys(report.perTestComparisons)) {
+    const allComps = report.perTestComparisons[testName]!
+    const changedComps = allComps.filter((c) => c.change !== 0)
+    if (changedComps.length > 0) {
+      perTestFiltered.push([testName, changedComps])
+    }
+  }
 
-  if (testsWithChanges.length > 0) {
+  if (perTestFiltered.length > 0) {
     console.log("")
     console.log(
       bold(
-        ` PER-TEST CHANGES (${testsWithChanges.length} of ${report.testCount})`,
+        ` PER-TEST CHANGES (${perTestFiltered.length} of ${report.testCount})`,
       ),
     )
 
-    // Compute dynamic width for per-test metric names
-    const allComps = testsWithChanges.flatMap(
-      (testName) => report.perTestComparisons[testName]!,
+    const allFilteredComps = perTestFiltered.flatMap(([, comps]) => comps)
+    const testNameWidth = metricLabelWidth(
+      allFilteredComps.map((comp) => comp.metric),
     )
-    const testNameWidth = metricLabelWidth(allComps.map((comp) => comp.metric))
 
-    for (const testName of testsWithChanges) {
+    for (const [testName, comps] of perTestFiltered) {
       console.log(`   ${cyan(testName)}`)
-      const comps = report.perTestComparisons[testName]!
       for (const comp of comps) {
         const label = displayMetricName(comp.metric)
-        const formatted = formatMetricValue(comp.metric, comp.current)
-        const baseFormatted = formatMetricValue(comp.metric, comp.baseline)
+        const isBoolean =
+          comp.metric.startsWith("score.") &&
+          booleanScoresForPerTest.has(comp.metric)
+
+        const formatted = isBoolean
+          ? formatScoreValue(comp.current, true)
+          : formatMetricValue(comp.metric, comp.current)
+        const baseFormatted = isBoolean
+          ? formatScoreValue(comp.baseline, true)
+          : formatMetricValue(comp.metric, comp.baseline)
 
         let line = `     ${padRight(label, testNameWidth)}${padRight(formatted, 10)}`
         line += `${dim("was")} ${padRight(baseFormatted, 10)}`
@@ -498,7 +689,7 @@ export function printVariantComparisonTables(reports: SuiteReport[]): void {
         }
         width = Math.max(
           width,
-          formatMetricValue(metricName, metricValue).length,
+          stripAnsi(formatMetricValue(metricName, metricValue)).length,
         )
       }
       return width
@@ -622,7 +813,14 @@ function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
   }
 
   const metrics = [...metricSet]
-  metrics.sort((left, right) => {
+  // Only show .avg for scores in variant comparison (min/max/p50/p95 shown inline)
+  const filtered = metrics.filter((name) => {
+    if (name.startsWith("score.")) return name.endsWith(".avg")
+    if (name.startsWith("latency") || name.startsWith("ttfb")) return name.endsWith(".avg")
+    if (name.startsWith("tokens.")) return name.endsWith(".sum")
+    return true
+  })
+  filtered.sort((left, right) => {
     const leftPriority = metricPriority(left)
     const rightPriority = metricPriority(right)
     if (leftPriority !== rightPriority) {
@@ -631,7 +829,7 @@ function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
     return displayMetricName(left).localeCompare(displayMetricName(right))
   })
 
-  return metrics
+  return filtered
 }
 
 function metricPriority(metricName: string): number {
@@ -659,6 +857,7 @@ function formatTableRow(cells: string[], widths: number[]): string {
 }
 
 function padRight(s: string, width: number): string {
-  if (s.length >= width) return s
-  return s + " ".repeat(width - s.length)
+  const visibleLength = stripAnsi(s).length
+  if (visibleLength >= width) return s
+  return s + " ".repeat(width - visibleLength)
 }
