@@ -579,7 +579,7 @@ function SelectorApp({ entries }: SelectorAppProps): React.ReactNode {
 export function createSelectionState(itemCount: number): SelectionState {
   return {
     cursor: 0,
-    selected: Array.from({ length: normalizeItemCount(itemCount) }, () => false),
+    selected: Array(normalizeItemCount(itemCount)).fill(false),
   }
 }
 
