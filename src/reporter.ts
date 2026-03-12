@@ -553,11 +553,11 @@ export function printSuiteReport(
     ([, v]) => !Number.isNaN(v),
   )
   const aggComparisons = report.comparisons
+  const booleanScores = detectBooleanScores(report)
 
   if (aggEntries.length > 0) {
     console.log(bold(" AGGREGATES"))
 
-    const booleanScores = detectBooleanScores(report)
     const metricGroups = groupMetricAggregates(
       report.aggregates,
       booleanScores,
@@ -598,7 +598,6 @@ export function printSuiteReport(
   }
 
   // Per-test changes — filter zero-change, use PASS/FAIL for boolean scores
-  const booleanScoresForPerTest = detectBooleanScores(report)
   const perTestFiltered: [string, ComparisonResult[]][] = []
   for (const testName of Object.keys(report.perTestComparisons)) {
     const allComps = report.perTestComparisons[testName]!
@@ -627,7 +626,7 @@ export function printSuiteReport(
         const label = displayMetricName(comp.metric)
         const isBoolean =
           comp.metric.startsWith("score.") &&
-          booleanScoresForPerTest.has(comp.metric)
+          booleanScores.has(comp.metric)
 
         const formatted = isBoolean
           ? formatScoreValue(comp.current, true)
