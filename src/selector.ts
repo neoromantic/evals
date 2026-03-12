@@ -54,16 +54,6 @@ function normalizeItemCount(itemCount: number): number {
   return Math.floor(itemCount)
 }
 
-function wrapIndex(index: number, itemCount: number): number {
-  const count = normalizeItemCount(itemCount)
-  if (count === 0) {
-    return 0
-  }
-
-  const remainder = index % count
-  return remainder >= 0 ? remainder : remainder + count
-}
-
 function padLeft(value: string, width: number): string {
   return value.length >= width ? value : `${" ".repeat(width - value.length)}${value}`
 }
@@ -598,13 +588,15 @@ export function moveCursor(
   itemCount: number,
   delta: number,
 ): SelectionState {
-  if (normalizeItemCount(itemCount) === 0 || delta === 0) {
+  const count = normalizeItemCount(itemCount)
+  if (count === 0 || delta === 0) {
     return state
   }
 
+  const remainder = (state.cursor + delta) % count
   return {
     ...state,
-    cursor: wrapIndex(state.cursor + delta, itemCount),
+    cursor: remainder >= 0 ? remainder : remainder + count,
   }
 }
 
