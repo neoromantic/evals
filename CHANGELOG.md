@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.7.0 - 2026-03-12
+
+**Features**
+
+- Automated release pipeline for streamlined version management and npm publishing
+- Baseline estimates support in eval selector for improved CLI evaluation
+- AGENTS workflow and command guide for agent integration
+
+**Improvements**
+
+- Optimized CLI argument parsing to compute and reuse results across entry points
+- Reporter now computes boolean score mappings once per report instead of repeatedly
+- Removed unreachable dead code and unused helper functions
+- Simplified reporter iteration by directly accessing comparison values
+- Streamlined command-set checking in argument parsing
+
 All notable changes to this package are documented in this file.
 
 ## 0.6.0 - 2026-03-10
