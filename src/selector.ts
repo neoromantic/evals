@@ -685,7 +685,7 @@ export function getVisibleWindow(
 
   return {
     start,
-    end: Math.min(count, start + size),
+    end: start + size,
   }
 }
 
