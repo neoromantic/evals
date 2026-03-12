@@ -22,7 +22,6 @@ runCli(args)
         ),
       )
       process.exit(1)
-      return
     }
 
     console.error("Eval runner failed:", error)
