@@ -35,14 +35,14 @@
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js",
       "bun": "./src/index.ts",
+      "import": "./dist/src/index.js",
       "default": "./dist/src/index.js"
     },
     "./preload": {
       "types": "./dist/src/preload.d.ts",
-      "import": "./dist/src/preload.js",
       "bun": "./src/preload.ts",
+      "import": "./dist/src/preload.js",
       "default": "./dist/src/preload.js"
     }
   },

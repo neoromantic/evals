@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { compareMetrics, getBaselinePath } from "./baseline"
@@ -228,6 +234,58 @@ describe("custom test names integration", () => {
         "name established",
         "email evidence",
       ])
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe("package self-import integration", () => {
+  test("emits eval reports when suites import @goodit/evals", () => {
+    const repoRoot = resolve(import.meta.dir, "..")
+    const preloadPath = resolve(import.meta.dir, "preload.ts")
+    const tempDir = mkdtempSync(join(repoRoot, ".goodit-evals-self-import-"))
+    const evalPath = join(tempDir, "self-import.eval.ts")
+    const outputPath = join(tempDir, "eval-output.json")
+
+    try {
+      writeFileSync(
+        evalPath,
+        [
+          'import { evalSuite, ExactMatch } from "@goodit/evals"',
+          "",
+          'evalSuite("self import suite", {',
+          '  data: [{ input: "France", expected: "France" }],',
+          "  task: async (input: string) => input,",
+          "  scorers: [ExactMatch],",
+          "})",
+          "",
+        ].join("\n"),
+      )
+
+      const run = Bun.spawnSync(
+        ["bun", "test", "--preload", preloadPath, evalPath],
+        {
+          cwd: repoRoot,
+          env: { ...process.env, EVAL_OUTPUT: outputPath },
+          stdout: "pipe",
+          stderr: "pipe",
+        },
+      )
+
+      const output = `${new TextDecoder().decode(run.stdout)}${new TextDecoder().decode(run.stderr)}`
+
+      expect(run.exitCode).toBe(0)
+      expect(output).toContain("self import suite")
+      expect(output).toContain("AGGREGATES")
+      expect(output).toContain("SUMMARY")
+      expect(existsSync(outputPath)).toBe(true)
+
+      const raw = JSON.parse(readFileSync(outputPath, "utf-8")) as Record<
+        string,
+        { aggregates?: Record<string, number> }
+      >
+      expect(raw["self import suite"]?.aggregates?.["test.count"]).toBe(1)
     } finally {
       rmSync(tempDir, { recursive: true, force: true })
     }
