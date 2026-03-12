@@ -39,11 +39,18 @@ Optional peer dependencies: `ai >= 6` (for `traceModel()` and semantic scorers),
 # from repo root
 bun run eval
 
+# choose eval files interactively in the terminal
+# shows baseline-based wall/work/token estimates when available
+bun run eval:select
+
 # run only tests whose name matches a regex
 bun run eval -- --test-name-pattern "Country Briefings"
 
 # include per-test scorer diagnostics
 bun run eval -- --verbose --test-name-pattern "Country Briefings"
+
+# combine interactive selection with pass-through Bun test flags
+bun run eval:select -- --verbose --test-name-pattern "Country Briefings"
 
 # machine-readable output for agents/tooling
 bun run eval -- --json --test-name-pattern "Country Briefings"
@@ -54,26 +61,39 @@ bun run eval:update
 
 ## Runner Behavior
 
-`bun run eval` executes `packages/evals/src/run.ts`, which:
+`bun run eval`, `bun run eval:select`, and `goodit-evals select` execute
+`src/run.ts`, which:
 
 1. Discovers all `**/*.eval.ts` files in the repo.
-2. Starts `bun test` with preload hook `@goodit/evals/preload`.
-3. Aggregates metrics and prints suite reports.
-4. Optionally compares against baselines.
-5. Loads `.env` and `.env.local` from the current working directory and passes
+2. Optionally opens an Ink-based selector UI for choosing specific eval files.
+3. Starts `bun test` with preload hook `@goodit/evals/preload`.
+4. Aggregates metrics and prints suite reports.
+5. Optionally compares against baselines.
+6. Loads `.env` and `.env.local` from the current working directory and passes
    them to eval test execution.
 
 Important:
 
 - Bun `>= 1.3.9` is required for per-case concurrent test registration.
 - If an older Bun is detected, the runner prints a warning.
+- `bun run eval:select` requires an interactive TTY.
+
+Interactive selector shortcuts:
+
+- `space` toggles the highlighted eval file.
+- `enter` runs the selected eval files.
+- `a` selects or clears all eval files.
+- `↑` / `↓` or `j` / `k` move through the list.
+- `q` cancels the selector.
+- When a saved baseline exists, the selector shows per-file estimates for wall
+  time, work time, token usage, and a focused suite breakdown.
 
 ## Add an Eval in 5 Steps
 
 ### 1. Write the task function
 
 ```ts
-// packages/evals/examples/capitals.ts
+// examples/capitals.ts
 import { openai } from "@ai-sdk/openai"
 import { traceModel } from "@goodit/evals"
 import { generateText } from "ai"
@@ -91,7 +111,7 @@ export async function getCapital(country: string): Promise<string> {
 ### 2. Create an eval file (`*.eval.ts`)
 
 ```ts
-// packages/evals/examples/capitals.eval.ts
+// examples/capitals.eval.ts
 import { ExactMatch, evalSuite } from "@goodit/evals"
 import { getCapital } from "./capitals"
 
@@ -393,6 +413,17 @@ This separation happens automatically — no code changes needed.
 
 ## CLI Flags and Env Vars
 
+### Commands
+
+- `bun run eval`
+  - Discover all eval files in the current working directory and run them.
+- `bun run eval:select`
+  - Open the interactive Ink selector, then run only the files you choose.
+- `goodit-evals select`
+  - Same interactive selector flow for the published CLI.
+- `goodit-evals interactive`
+  - Alias for `goodit-evals select`.
+
 ### Runner-only flags
 
 - `--verbose`
@@ -501,7 +532,7 @@ Use consistent names so aggregation and baseline comparison behave as expected.
 
 ## LLM-based Scorers and Score Semantics
 
-`packages/evals/examples/country-briefing.eval.ts` demonstrates LLM judging
+`examples/country-briefing.eval.ts` demonstrates LLM judging
 with `autoevals` `Factuality`.
 
 Important semantics:
@@ -531,7 +562,7 @@ acceptable for the specific task contract.
 
 When adding evals in this repo:
 
-1. Add a task file under `packages/evals/examples` or the target feature folder.
+1. Add a task file under `examples` or the target feature folder.
 2. Add `*.eval.ts` with at least one deterministic scorer.
 3. If using LLM judges, include explicit metadata and rubric interpretation.
 4. Run:
@@ -542,27 +573,28 @@ When adding evals in this repo:
 
 ## Package Scripts
 
-From `packages/evals`:
+From this package directory:
 
 ```bash
 bun run eval         # run eval discovery + report
+bun run eval:select  # choose eval files interactively, then run them
 bun run eval:update  # run and update baselines
 bun run test         # unit/integration tests for framework
 bun run typecheck
-bun run lint
 ```
 
 From repo root:
 
 ```bash
 bun run eval
+bun run eval:select
 bun run eval:update
 ```
 
 ## Project Layout
 
 ```text
-packages/evals/
+.
   src/
     aggregate.ts
     baseline.ts
