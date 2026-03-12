@@ -187,23 +187,6 @@ export function shouldPrintVerboseTest(test: VerboseTestReport): boolean {
   return test.scorerResults.some((scorerResult) => scorerResult.score < 1)
 }
 
-function formatMetadata(metadata: unknown): string | null {
-  if (metadata === undefined) {
-    return null
-  }
-
-  if (typeof metadata === "string") {
-    return metadata
-  }
-
-  const serialized = JSON.stringify(metadata, null, 2)
-  if (!serialized) {
-    return null
-  }
-
-  return serialized
-}
-
 function formatScorerStatus(score: number, passThreshold: number): string {
   const scoreText = score.toFixed(2)
   const status = classifyScorerScore(score, passThreshold)
@@ -373,10 +356,10 @@ function printVerboseScorerDetails(report: SuiteReport): void {
         console.log(`       ${dim(choiceSummary)}`)
       }
 
-      const metadata = formatMetadata(scorerResult.metadata)
-      if (metadata && scorerResult.score < 1) {
+      const metadata = metadataLines(scorerResult.metadata)
+      if (metadata.length > 0 && scorerResult.score < 1) {
         console.log(`       ${dim("metadata:")}`)
-        for (const line of metadataLines(scorerResult.metadata)) {
+        for (const line of metadata) {
           console.log(`         ${dim(line)}`)
         }
       }
