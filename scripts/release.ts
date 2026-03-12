@@ -680,6 +680,7 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
   }
 
   const tweetText = value.tweetText.trim()
+  const npmLink = "https://www.npmjs.com/package/@goodit/evals"
 
   if (!tweetText) {
     throw new Error("Release draft tweetText cannot be empty")
@@ -687,6 +688,10 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
 
   if (tweetText.length > 280) {
     throw new Error(`Release draft tweetText exceeds 280 characters (${tweetText.length})`)
+  }
+
+  if (!tweetText.includes(npmLink)) {
+    throw new Error(`Release draft tweetText must include ${npmLink}`)
   }
 
   return {
