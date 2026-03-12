@@ -40,11 +40,10 @@ function parseOptionalBooleanFlag(
 
 export function parseCliArgs(args: string[]): ParsedCliArgs {
   const firstArg = args[0] ?? ""
-  const command = SELECT_COMMANDS.has(firstArg) ? "select" : "run"
-  const runnerArgs =
-    SELECT_COMMANDS.has(firstArg) || RUN_COMMANDS.has(firstArg)
-      ? args.slice(1)
-      : args
+  const isSelectCommand = SELECT_COMMANDS.has(firstArg)
+  const isRunnerCommand = isSelectCommand || RUN_COMMANDS.has(firstArg)
+  const command = isSelectCommand ? "select" : "run"
+  const runnerArgs = isRunnerCommand ? args.slice(1) : args
   const bunArgs: string[] = []
   let verboseReporting = false
   let jsonOutput = false
