@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { spawnSync } from "node:child_process"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
+import { parseReleaseArgs } from "./release-args"
 import {
   bumpVersion,
   inferVersionBump,
@@ -38,20 +39,13 @@ interface ReleaseAnchor {
   source: "tag" | "commit" | "root"
 }
 
-interface Options {
-  dryRun: boolean
-  skipPush: boolean
-  bump?: VersionBump
-  fromRef?: string
-}
-
 const cwd = process.cwd()
 const packageJsonPath = join(cwd, "package.json")
 const readmePath = join(cwd, "README.md")
 const changelogPath = join(cwd, "CHANGELOG.md")
 
 async function main() {
-  const options = parseArgs(Bun.argv.slice(2))
+  const options = parseReleaseArgs(Bun.argv.slice(2))
   ensureGitRepository()
   fetchTags()
 
@@ -152,47 +146,14 @@ async function main() {
   if (!options.skipPush) {
     git(["push", "origin", "main"])
     git(["push", "origin", tagName])
-    maybePostTweet(draft.tweetText)
-  }
-
-  console.log(`Release prepared: ${tagName}`)
-}
-
-function parseArgs(argv: string[]): Options {
-  const options: Options = { dryRun: false, skipPush: false }
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
-
-    switch (arg) {
-      case "--dry-run":
-        options.dryRun = true
-        break
-      case "--skip-push":
-        options.skipPush = true
-        break
-      case "--bump":
-        index += 1
-        options.bump = parseBump(argv[index])
-        break
-      case "--from-ref":
-        index += 1
-        options.fromRef = argv[index]
-        break
-      default:
-        throw new Error(`Unknown argument: ${arg}`)
+    if (options.skipTweet) {
+      console.log("Skipping release tweet (--skip-tweet).")
+    } else {
+      maybePostTweet(draft.tweetText)
     }
   }
 
-  return options
-}
-
-function parseBump(value: string | undefined): VersionBump {
-  if (value === "patch" || value === "minor" || value === "major") {
-    return value
-  }
-
-  throw new Error(`Invalid --bump value: ${value ?? "<missing>"}`)
+  console.log(`Release prepared: ${tagName}`)
 }
 
 function ensureGitRepository() {

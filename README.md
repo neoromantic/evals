@@ -595,6 +595,9 @@ bun run release -- --dry-run
 
 # prepare changelog + docs, run validation, commit, tag, and push
 bun run release
+
+# prepare and push a release without posting to X/Twitter
+bun run release -- --skip-tweet
 ```
 
 What `bun run release` does:
@@ -613,8 +616,8 @@ What `bun run release` does:
    `release: vX.Y.Z`.
 7. Creates tag `vX.Y.Z` and pushes `main` plus the tag.
 8. Uses the LLM release draft to generate a short release tweet, then attempts
-   to post it via `twitter post "TEXT"`. If the `twitter` CLI is unavailable or
-   errors, the release still succeeds silently.
+   to post it via `twitter post "TEXT"` unless `--skip-tweet` is passed. If the
+   `twitter` CLI is unavailable or errors, the release still succeeds silently.
 
 The publish step happens in GitHub Actions on tag push. Configure:
 
