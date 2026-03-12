@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.1 - 2026-03-12
+
+**Fixes**
+
+- Restored eval metrics reporting for Bun self-imports by aligning Bun package resolution with the source preload hook.
+- Added a package self-import regression test to prevent reporter regressions.
+- Added `--skip-tweet` to the release workflow so releases can be pushed without posting to X/Twitter.
+
 ## 0.7.0 - 2026-03-12
 
 **Features**

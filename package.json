@@ -1,6 +1,6 @@
 {
   "name": "@goodit/evals",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Pragmatic eval framework for LLM features. Runs eval files as Bun tests with scorers, baselines, and reporting.",
   "license": "MIT",
   "repository": {
