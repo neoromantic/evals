@@ -64,22 +64,6 @@ function wrapIndex(index: number, itemCount: number): number {
   return remainder >= 0 ? remainder : remainder + count
 }
 
-function sumNumbers(values: Array<number | null | undefined>): number | null {
-  let total = 0
-  let hasValue = false
-
-  for (const value of values) {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
-      continue
-    }
-
-    total += value
-    hasValue = true
-  }
-
-  return hasValue ? total : null
-}
-
 function padLeft(value: string, width: number): string {
   return value.length >= width ? value : `${" ".repeat(width - value.length)}${value}`
 }
