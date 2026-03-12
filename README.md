@@ -59,6 +59,80 @@ bun run eval -- --json --test-name-pattern "Country Briefings"
 bun run eval:update
 ```
 
+## CLI Screenshots
+
+The demo fixtures below are intentionally a little less sterile than `foo` and
+`bar`, so Sam Altman, Demis Hassabis, Andrej Karpathy, Dario Amodei, and
+Fei-Fei Li make cameo appearances in the terminal.
+
+### Interactive selector
+
+<p>
+  <img
+    src="https://raw.githubusercontent.com/neoromantic/evals/main/docs/screenshots/selector.png"
+    alt="Interactive eval selector showing baseline wall time and token estimates"
+    width="1200"
+  />
+</p>
+
+`bun run eval:select` shows saved wall-time, work-time, and token estimates
+before you launch a run, with a focused suite breakdown for the currently
+highlighted file.
+
+### Human-readable report
+
+<p>
+  <img
+    src="https://raw.githubusercontent.com/neoromantic/evals/main/docs/screenshots/report.png"
+    alt="Human-readable eval report with baseline comparisons"
+    width="1200"
+  />
+</p>
+
+`bun run eval` prints the suite summary you actually want during iteration:
+scores, pass rate, latency, tokens, and baseline regression markers in one
+place.
+
+### Verbose scorer diagnostics
+
+<p>
+  <img
+    src="https://raw.githubusercontent.com/neoromantic/evals/main/docs/screenshots/verbose.png"
+    alt="Verbose scorer diagnostics for a failing eval case"
+    width="1200"
+  />
+</p>
+
+`bun run eval -- --verbose` drills into the exact case that went off the rails,
+including scorer metadata and the missing pieces that caused the failure.
+
+### Variant comparison tables
+
+<p>
+  <img
+    src="https://raw.githubusercontent.com/neoromantic/evals/main/docs/screenshots/variants.png"
+    alt="Variant comparison table for evalSuite.each variants"
+    width="1100"
+  />
+</p>
+
+`evalSuite.each(...)` gets a dedicated comparison table so you can see, at a
+glance, whether `founder-mode`, `research-mode`, or `taste-mode` deserves the
+budget.
+
+### JSON mode
+
+<p>
+  <img
+    src="https://raw.githubusercontent.com/neoromantic/evals/main/docs/screenshots/json.png"
+    alt="Machine-readable JSON output from the eval runner"
+    width="960"
+  />
+</p>
+
+`bun run eval -- --json` emits structured output for agents, CI, and other
+tooling without the human report wrapped around it.
+
 ## Runner Behavior
 
 `bun run eval`, `bun run eval:select`, and `goodit-evals select` execute
