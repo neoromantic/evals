@@ -774,8 +774,8 @@ function summarizeReports(reports: SuiteReport[]): SummaryCounts {
       else metricsOk++
     }
 
-    for (const testName of Object.keys(report.perTestComparisons)) {
-      for (const comp of report.perTestComparisons[testName]!) {
+    for (const comps of Object.values(report.perTestComparisons)) {
+      for (const comp of comps) {
         if (comp.regressed) regressions++
         else metricsOk++
       }
