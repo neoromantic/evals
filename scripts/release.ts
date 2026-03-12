@@ -812,20 +812,97 @@ function getLlmTimeoutMs(): number {
 
 function maybePostTweet(text: string) {
   try {
-    const status = spawnSync("twitter", ["status"], {
+    const status = spawnSync("twitter", ["status", "--json"], {
       cwd,
-      stdio: ["ignore", "ignore", "ignore"],
+      stdio: ["ignore", "pipe", "pipe"],
+      encoding: "utf8",
+      timeout: 15000,
     })
 
-    if (status.status !== 0 || status.error) {
+    if (status.error?.code === "ENOENT") {
+      console.warn("Warning: twitter CLI not found; skipping release tweet.")
       return
     }
 
-    spawnSync("twitter", ["post", text], {
+    if (status.error?.name === "TimeoutError" || status.signal) {
+      console.warn(
+        `Warning: twitter status check timed out or was terminated (${status.signal ?? "timeout"}); skipping release tweet.`,
+      )
+      return
+    }
+
+    if (status.status !== 0) {
+      console.warn("Warning: twitter status check failed; skipping release tweet.")
+
+      const details = [status.stdout, status.stderr].filter(Boolean).join("\n").trim()
+
+      if (details) {
+        console.warn(details)
+      }
+      return
+    }
+
+    const auth = tryParseJson(status.stdout ?? "")
+
+    if (!auth?.ok || auth?.data?.authenticated !== true) {
+      console.warn("Warning: twitter CLI is not authenticated; skipping release tweet.")
+      return
+    }
+
+    const post = spawnSync("twitter", ["post", "--json", text], {
       cwd,
-      stdio: ["ignore", "ignore", "ignore"],
+      stdio: ["ignore", "pipe", "pipe"],
+      encoding: "utf8",
+      timeout: 30000,
     })
-  } catch {
+
+    if (post.error?.code === "ENOENT") {
+      console.warn("Warning: twitter CLI disappeared before posting; skipping release tweet.")
+      return
+    }
+
+    if (post.error?.name === "TimeoutError" || post.signal) {
+      console.warn(
+        `Warning: twitter post timed out or was terminated (${post.signal ?? "timeout"}); release will continue.`,
+      )
+      return
+    }
+
+    if (post.status !== 0) {
+      console.warn("Warning: twitter post failed; release will continue.")
+
+      const details = [post.stdout, post.stderr].filter(Boolean).join("\n").trim()
+      const parsed = tryParseJson(post.stdout ?? "")
+      const errorCode = parsed?.error?.details?.code ?? parsed?.error?.code
+      const errorMessage = parsed?.error?.message
+
+      if (errorCode === 187 || /duplicate/i.test(errorMessage ?? "")) {
+        console.warn("Twitter rejected the tweet as a duplicate status.")
+      }
+
+      if (details) {
+        console.warn(details)
+      }
+      return
+    }
+
+    const result = tryParseJson(post.stdout ?? "")
+    const tweetId = result?.data?.id
+    const screenName =
+      result?.data?.author?.screenName ??
+      result?.data?.author?.username ??
+      auth?.data?.user?.screenName ??
+      auth?.data?.user?.username
+
+    if (tweetId && screenName) {
+      console.log(`Release tweet posted: https://x.com/${screenName}/status/${tweetId}`)
+      return
+    }
+
+    console.log("Release tweet posted.")
+  } catch (error) {
+    console.warn("Warning: unexpected twitter post error; release will continue.")
+    console.warn(error instanceof Error ? error.message : String(error))
     return
   }
 }
