@@ -70,19 +70,17 @@ export function parseCliArgs(args: string[]): ParsedCliArgs {
 
 export async function runCli(args: string[]): Promise<number> {
   const cwd = process.cwd()
-  const { command, bunArgs, verboseReporting, jsonOutput } = parseCliArgs(args)
+  const parsedArgs = parseCliArgs(args)
   const discoveredEvalFiles = await discoverEvalFiles(cwd)
-  const runSelection = (evalFiles: string[]) =>
-    runEvalFiles({
-      cwd,
-      evalFiles,
-      bunArgs,
-      verboseReporting,
-      jsonOutput,
-    })
 
-  if (command === "run" || discoveredEvalFiles.length === 0) {
-    return runSelection(discoveredEvalFiles)
+  if (parsedArgs.command === "run" || discoveredEvalFiles.length === 0) {
+    return runEvalFiles({
+      cwd,
+      evalFiles: discoveredEvalFiles,
+      bunArgs: parsedArgs.bunArgs,
+      verboseReporting: parsedArgs.verboseReporting,
+      jsonOutput: parsedArgs.jsonOutput,
+    })
   }
 
   const selection = await selectEvalFilesInteractive({
@@ -96,5 +94,11 @@ export async function runCli(args: string[]): Promise<number> {
     return 0
   }
 
-  return runSelection(selection.evalFiles)
+  return runEvalFiles({
+    cwd,
+    evalFiles: selection.evalFiles,
+    bunArgs: parsedArgs.bunArgs,
+    verboseReporting: parsedArgs.verboseReporting,
+    jsonOutput: parsedArgs.jsonOutput,
+  })
 }
