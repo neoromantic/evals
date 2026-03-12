@@ -1,11 +1,13 @@
 import { parseCliArgs, runCli } from "./cli"
 
-runCli(process.argv.slice(2))
+const args = process.argv.slice(2)
+const { jsonOutput } = parseCliArgs(args)
+
+runCli(args)
   .then((exitCode) => {
     process.exit(exitCode)
   })
   .catch((error) => {
-    const { jsonOutput } = parseCliArgs(process.argv.slice(2))
     if (jsonOutput) {
       console.log(
         JSON.stringify(
