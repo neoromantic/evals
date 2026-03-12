@@ -66,11 +66,6 @@ function percentile(entries: AggregationEntry[], p: number): number {
   return sorted[lower]! * (1 - fraction) + sorted[upper]! * fraction
 }
 
-function weightedRate(entries: AggregationEntry[]): number {
-  // Same formula as weightedAvg — values are 0 or 1
-  return weightedAvg(entries)
-}
-
 function collectNumericMetricNames(tests: TestMetrics[]): Set<string> {
   const metricNames = new Set<string>()
   for (const test of tests) {
@@ -135,7 +130,7 @@ function computeAgg(op: AggOp, entries: AggregationEntry[]): number {
     case "count":
       return sum(entries)
     case "rate":
-      return weightedRate(entries)
+      return weightedAvg(entries)
   }
 }
 
@@ -222,7 +217,7 @@ export function aggregateMetrics(
 
   const passThreshold = suiteConfig?.passThreshold ?? 0.5
   const passEntries = buildPassEntries(tests, passThreshold)
-  result["test.pass_rate"] = weightedRate(passEntries)
+  result["test.pass_rate"] = weightedAvg(passEntries)
 
   // 4. Run custom aggregations from suiteConfig
   if (suiteConfig?.aggregations) {
