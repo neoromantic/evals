@@ -18,7 +18,16 @@ interface ReleaseDraft {
   highlights: string[]
   changelogSection: string
   readmeAction: "unchanged" | "replace"
+  readmeSummary: string
   readmeContent: string
+  tweetText: string
+}
+
+interface ReleasePlanDraft {
+  releaseSummary: string
+  highlights: string[]
+  changelogSection: string
+  readmeAction: "unchanged" | "replace"
   readmeSummary: string
   tweetText: string
 }
@@ -93,7 +102,6 @@ async function main() {
     commitLog,
     changedFiles,
     readme,
-    changelog,
   })
 
   const heading = parseReleaseHeading(draft.changelogSection)
@@ -305,7 +313,6 @@ async function generateReleaseDraft(input: {
   commitLog: string
   changedFiles: string
   readme: string
-  changelog: string
 }): Promise<ReleaseDraft> {
   const schema = {
     type: "object",
@@ -315,7 +322,6 @@ async function generateReleaseDraft(input: {
       "highlights",
       "changelogSection",
       "readmeAction",
-      "readmeContent",
       "readmeSummary",
       "tweetText",
     ],
@@ -331,7 +337,6 @@ async function generateReleaseDraft(input: {
         type: "string",
         enum: ["unchanged", "replace"],
       },
-      readmeContent: { type: "string" },
       readmeSummary: { type: "string" },
       tweetText: { type: "string" },
     },
@@ -339,14 +344,41 @@ async function generateReleaseDraft(input: {
 
   const prompt = buildReleasePrompt(input)
   const provider = getLlmProvider()
+  let planDraft: ReleasePlanDraft
 
   switch (provider) {
     case "codex":
-      return await runCodex(prompt, schema)
+      planDraft = await runCodex(prompt, schema)
+      break
     case "claude":
-      return await runClaude(prompt, schema)
+      planDraft = await runClaude(prompt, schema)
+      break
     case "command":
-      return await runCustomCommand(prompt)
+      planDraft = await runCustomCommand(prompt)
+      break
+  }
+
+  if (planDraft.readmeAction === "replace") {
+    const readmeContent = await generateReadmeRewrite({
+      currentReadme: input.readme,
+      currentVersion: input.currentVersion,
+      nextVersion: input.nextVersion,
+      releaseDate: input.releaseDate,
+      commitLog: input.commitLog,
+      changedFiles: input.changedFiles,
+      releaseSummary: planDraft.releaseSummary,
+      highlights: planDraft.highlights,
+    })
+
+    return {
+      ...planDraft,
+      readmeContent,
+    }
+  }
+
+  return {
+    ...planDraft,
+    readmeContent: "",
   }
 }
 
@@ -358,25 +390,25 @@ function buildReleasePrompt(input: {
   anchor: ReleaseAnchor
   commitLog: string
   changedFiles: string
-  readme: string
-  changelog: string
 }): string {
   return [
     "You are preparing a release draft for the npm package @goodit/evals.",
+    "Use only the commit log, changed-file list, and release metadata provided here.",
+    "Do not inspect the repository or infer details from source diffs.",
     "Return valid JSON only. Do not wrap the response in Markdown fences.",
     "",
     "Goals:",
     "1. Write a high-quality changelog section from git history commit messages.",
-    "2. Update README content only if the release materially changes user-facing behavior or if the current README contains stale repo-layout references that should be corrected.",
+    "2. Decide whether README.md needs a follow-up rewrite pass.",
     "3. Draft a short release tweet for X/Twitter.",
-    "3. Preserve correct documentation; do not invent APIs or commands.",
+    "4. Preserve correct documentation; do not invent APIs or commands.",
     "",
     "Output rules:",
     `- changelogSection must start with exactly: ## ${input.nextVersion} - ${input.releaseDate}`,
     "- Use concise, concrete release notes with short paragraphs and bullets only when useful.",
-    "- If README should not change, set readmeAction to unchanged and readmeContent to an empty string.",
-    "- If README should change, return the full rewritten README in readmeContent.",
-    "- Keep the README structure familiar unless a section is clearly stale.",
+    "- If README should not change, set readmeAction to unchanged.",
+    "- If README likely needs a rewrite, set readmeAction to replace and explain why in readmeSummary.",
+    "- Prefer readmeAction=unchanged when README.md is already in the changed-file list for this release unless the commit log clearly describes an additional undocumented user-facing change.",
     `- tweetText must be <= 280 characters, mention version ${input.nextVersion}, summarize the main changes, and include this exact npm link: https://www.npmjs.com/package/@goodit/evals`,
     "- tweetText should read like a natural release announcement, not a changelog bullet list.",
     "",
@@ -391,13 +423,61 @@ function buildReleasePrompt(input: {
     "",
     "Changed files since the baseline ref:",
     input.changedFiles || "(none)",
+  ].join("\n")
+}
+
+async function generateReadmeRewrite(input: {
+  currentReadme: string
+  currentVersion: string
+  nextVersion: string
+  releaseDate: string
+  commitLog: string
+  changedFiles: string
+  releaseSummary: string
+  highlights: string[]
+}): Promise<string> {
+  const schema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["readmeContent"],
+    properties: {
+      readmeContent: { type: "string" },
+    },
+  }
+
+  const prompt = [
+    "Rewrite README.md for the next release of @goodit/evals.",
+    "Use only the provided README content, commit log, changed-file list, and release summary.",
+    "Preserve correct sections and examples. Make the smallest necessary update.",
+    "Return valid JSON only.",
     "",
-    "Current CHANGELOG.md:",
-    input.changelog,
+    "Release context:",
+    `- Current version: ${input.currentVersion}`,
+    `- Next version: ${input.nextVersion}`,
+    `- Release date: ${input.releaseDate}`,
+    `- Summary: ${input.releaseSummary}`,
+    `- Highlights: ${input.highlights.join(" | ") || "(none)"}`,
+    "",
+    "Changed files since the baseline ref:",
+    input.changedFiles || "(none)",
+    "",
+    "Commits since the baseline ref:",
+    input.commitLog,
     "",
     "Current README.md:",
-    input.readme,
+    input.currentReadme,
   ].join("\n")
+
+  const provider = getLlmProvider()
+
+  switch (provider) {
+    case "codex":
+      return validateReadmeRewrite(await runCodex(prompt, schema))
+    case "claude":
+      return validateReadmeRewrite(await runClaude(prompt, schema))
+    case "command":
+      return validateReadmeRewrite(await runCustomCommand(prompt))
+  }
 }
 
 function getLlmProvider(): LlmProvider {
@@ -412,7 +492,7 @@ function getLlmProvider(): LlmProvider {
   )
 }
 
-async function runCodex(prompt: string, schema: object): Promise<ReleaseDraft> {
+async function runCodex(prompt: string, schema: object): Promise<any> {
   const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-codex-"))
   const schemaPath = join(tempDir, "schema.json")
   const outputPath = join(tempDir, "output.json")
@@ -428,7 +508,7 @@ async function runCodex(prompt: string, schema: object): Promise<ReleaseDraft> {
       "--sandbox",
       "read-only",
       "--cd",
-      cwd,
+      tempDir,
       "--output-schema",
       schemaPath,
       "--output-last-message",
@@ -444,28 +524,34 @@ async function runCodex(prompt: string, schema: object): Promise<ReleaseDraft> {
     }
 
     const proc = spawnSync(command[0]!, command.slice(1), {
-      cwd,
+      cwd: tempDir,
       input: prompt,
       stdio: ["pipe", "inherit", "inherit"],
       encoding: "utf8",
+      timeout: getLlmTimeoutMs(),
     })
+
+    if (proc.error?.name === "TimeoutError" || proc.signal) {
+      throw new Error(`Codex release draft timed out or was terminated (${proc.signal ?? "timeout"})`)
+    }
 
     if (proc.status !== 0) {
       throw new Error(`Codex exited with code ${proc.status}`)
     }
 
-    return parseDraft(readFileSync(outputPath, "utf8"))
+    return validateReleasePlan(parseJsonPayload(readFileSync(outputPath, "utf8")))
   } finally {
     rmSync(tempDir, { recursive: true, force: true })
   }
 }
 
-async function runClaude(prompt: string, schema: object): Promise<ReleaseDraft> {
+async function runClaude(prompt: string, schema: object): Promise<any> {
+  const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-claude-"))
   const command = [
     "claude",
     "-p",
     "--output-format",
-    "text",
+    "json",
     "--permission-mode",
     "dontAsk",
     "--tools",
@@ -480,21 +566,30 @@ async function runClaude(prompt: string, schema: object): Promise<ReleaseDraft> 
     command.push("--model", model)
   }
 
-  const proc = spawnSync(command[0]!, command.slice(1), {
-    cwd,
-    input: prompt,
-    stdio: ["pipe", "pipe", "inherit"],
-    encoding: "utf8",
-  })
+  try {
+    const proc = spawnSync(command[0]!, command.slice(1), {
+      cwd: tempDir,
+      input: prompt,
+      stdio: ["pipe", "pipe", "inherit"],
+      encoding: "utf8",
+      timeout: getLlmTimeoutMs(),
+    })
 
-  if (proc.status !== 0) {
-    throw new Error(`Claude exited with code ${proc.status}`)
+    if (proc.error?.name === "TimeoutError" || proc.signal) {
+      throw new Error(`Claude release draft timed out or was terminated (${proc.signal ?? "timeout"})`)
+    }
+
+    if (proc.status !== 0) {
+      throw new Error(`Claude exited with code ${proc.status}`)
+    }
+
+    return parseClaudeJsonPayload(proc.stdout ?? "")
+  } finally {
+    rmSync(tempDir, { recursive: true, force: true })
   }
-
-  return parseDraft(proc.stdout ?? "")
 }
 
-async function runCustomCommand(prompt: string): Promise<ReleaseDraft> {
+async function runCustomCommand(prompt: string): Promise<any> {
   const llmCommand = process.env.GOODIT_RELEASE_LLM_COMMAND?.trim()
 
   if (!llmCommand) {
@@ -508,21 +603,26 @@ async function runCustomCommand(prompt: string): Promise<ReleaseDraft> {
     input: prompt,
     stdio: ["pipe", "pipe", "inherit"],
     encoding: "utf8",
+    timeout: getLlmTimeoutMs(),
   })
+
+  if (proc.error?.name === "TimeoutError" || proc.signal) {
+    throw new Error(`Custom LLM command timed out or was terminated (${proc.signal ?? "timeout"})`)
+  }
 
   if (proc.status !== 0) {
     throw new Error(`Custom LLM command exited with code ${proc.status}`)
   }
 
-  return parseDraft(proc.stdout ?? "")
+  return parseJsonPayload(proc.stdout ?? "")
 }
 
-function parseDraft(raw: string): ReleaseDraft {
+function parseJsonPayload(raw: string): any {
   const trimmed = raw.trim()
   const direct = tryParseJson(trimmed)
 
   if (direct) {
-    return validateDraft(direct)
+    return direct
   }
 
   const wrapper = tryParseJson(trimmed.replace(/^[^{]*/, ""))
@@ -532,14 +632,30 @@ function parseDraft(raw: string): ReleaseDraft {
       const nested = tryParseJson(wrapper.result.trim())
 
       if (nested) {
-        return validateDraft(nested)
+        return nested
       }
     }
 
-    return validateDraft(wrapper)
+    return wrapper
   }
 
   throw new Error(`Could not parse LLM output as JSON:\n${trimmed}`)
+}
+
+function parseClaudeJsonPayload(raw: string): any {
+  const payload = parseJsonPayload(raw)
+
+  if (payload && typeof payload === "object") {
+    if (payload.structured_output && typeof payload.structured_output === "object") {
+      return payload.structured_output
+    }
+
+    if (typeof payload.result === "string" && payload.result.trim()) {
+      return parseJsonPayload(payload.result)
+    }
+  }
+
+  return payload
 }
 
 function tryParseJson(value: string): any {
@@ -550,14 +666,13 @@ function tryParseJson(value: string): any {
   }
 }
 
-function validateDraft(value: any): ReleaseDraft {
+function validateReleasePlan(value: any): ReleasePlanDraft {
   if (
     !value ||
     typeof value.releaseSummary !== "string" ||
     !Array.isArray(value.highlights) ||
     typeof value.changelogSection !== "string" ||
     (value.readmeAction !== "unchanged" && value.readmeAction !== "replace") ||
-    typeof value.readmeContent !== "string" ||
     typeof value.readmeSummary !== "string" ||
     typeof value.tweetText !== "string"
   ) {
@@ -579,10 +694,17 @@ function validateDraft(value: any): ReleaseDraft {
     highlights: value.highlights.map((item: unknown) => String(item)),
     changelogSection: ensureTrailingNewline(value.changelogSection.trim()),
     readmeAction: value.readmeAction,
-    readmeContent: value.readmeContent,
     readmeSummary: value.readmeSummary,
     tweetText,
   }
+}
+
+function validateReadmeRewrite(value: any): string {
+  if (!value || typeof value.readmeContent !== "string" || !value.readmeContent.trim()) {
+    throw new Error(`Invalid README rewrite payload: ${JSON.stringify(value, null, 2)}`)
+  }
+
+  return ensureTrailingNewline(value.readmeContent.trim())
 }
 
 function printPlan(input: {
@@ -670,6 +792,17 @@ function writeJsonFile(path: string, value: unknown) {
 
 function ensureTrailingNewline(value: string): string {
   return value.endsWith("\n") ? value : `${value}\n`
+}
+
+function getLlmTimeoutMs(): number {
+  const raw = process.env.GOODIT_RELEASE_LLM_TIMEOUT_MS?.trim()
+  const parsed = raw ? Number(raw) : NaN
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed
+  }
+
+  return 60000
 }
 
 function maybePostTweet(text: string) {
