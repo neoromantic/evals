@@ -101,11 +101,7 @@ export async function discoverEvalFiles(cwd: string): Promise<string[]> {
   const evalFiles: string[] = []
 
   for await (const file of glob.scan({ cwd, absolute: true })) {
-    if (
-      file.includes("/node_modules/") ||
-      file.includes("\\node_modules\\") ||
-      file.startsWith("node_modules/")
-    ) {
+    if (file.includes("/node_modules/") || file.includes("\\node_modules\\")) {
       continue
     }
 
