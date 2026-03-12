@@ -4,6 +4,8 @@ import { selectEvalFilesInteractive } from "./selector"
 
 const RUN_COMMANDS = new Set(["run"])
 const SELECT_COMMANDS = new Set(["interactive", "select"])
+const VERBOSE_FLAGS = new Set(["--verbose", "--eval-verbose"])
+const JSON_FLAGS = new Set(["--json", "--eval-json"])
 
 export interface ParsedCliArgs {
   command: "run" | "select"
@@ -23,6 +25,19 @@ function parseBooleanFlagValue(rawValue: string | undefined): boolean {
   )
 }
 
+function parseOptionalBooleanFlag(
+  arg: string,
+  flags: Set<string>,
+): boolean | undefined {
+  const [rawFlag, rawValue] = arg.split("=", 2)
+  const flag = rawFlag ?? ""
+  if (!flags.has(flag)) {
+    return undefined
+  }
+
+  return rawValue === undefined ? true : parseBooleanFlagValue(rawValue)
+}
+
 export function parseCliArgs(args: string[]): ParsedCliArgs {
   const firstArg = args[0] ?? ""
   const command = SELECT_COMMANDS.has(firstArg) ? "select" : "run"
@@ -35,24 +50,15 @@ export function parseCliArgs(args: string[]): ParsedCliArgs {
   let jsonOutput = false
 
   for (const arg of runnerArgs) {
-    if (arg === "--verbose" || arg === "--eval-verbose") {
-      verboseReporting = true
+    const verboseValue = parseOptionalBooleanFlag(arg, VERBOSE_FLAGS)
+    if (verboseValue !== undefined) {
+      verboseReporting = verboseValue
       continue
     }
 
-    if (arg === "--json" || arg === "--eval-json") {
-      jsonOutput = true
-      continue
-    }
-
-    const [flag, rawValue] = arg.split("=", 2)
-    if (flag === "--verbose" || flag === "--eval-verbose") {
-      verboseReporting = parseBooleanFlagValue(rawValue)
-      continue
-    }
-
-    if (flag === "--json" || flag === "--eval-json") {
-      jsonOutput = parseBooleanFlagValue(rawValue)
+    const jsonValue = parseOptionalBooleanFlag(arg, JSON_FLAGS)
+    if (jsonValue !== undefined) {
+      jsonOutput = jsonValue
       continue
     }
 
@@ -64,17 +70,19 @@ export function parseCliArgs(args: string[]): ParsedCliArgs {
 
 export async function runCli(args: string[]): Promise<number> {
   const cwd = process.cwd()
-  const parsedArgs = parseCliArgs(args)
+  const { command, bunArgs, verboseReporting, jsonOutput } = parseCliArgs(args)
   const discoveredEvalFiles = await discoverEvalFiles(cwd)
-
-  if (parsedArgs.command === "run" || discoveredEvalFiles.length === 0) {
-    return runEvalFiles({
+  const runSelection = (evalFiles: string[]) =>
+    runEvalFiles({
       cwd,
-      evalFiles: discoveredEvalFiles,
-      bunArgs: parsedArgs.bunArgs,
-      verboseReporting: parsedArgs.verboseReporting,
-      jsonOutput: parsedArgs.jsonOutput,
+      evalFiles,
+      bunArgs,
+      verboseReporting,
+      jsonOutput,
     })
+
+  if (command === "run" || discoveredEvalFiles.length === 0) {
+    return runSelection(discoveredEvalFiles)
   }
 
   const selection = await selectEvalFilesInteractive({
@@ -88,11 +96,5 @@ export async function runCli(args: string[]): Promise<number> {
     return 0
   }
 
-  return runEvalFiles({
-    cwd,
-    evalFiles: selection.evalFiles,
-    bunArgs: parsedArgs.bunArgs,
-    verboseReporting: parsedArgs.verboseReporting,
-    jsonOutput: parsedArgs.jsonOutput,
-  })
+  return runSelection(selection.evalFiles)
 }
