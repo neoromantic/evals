@@ -17,12 +17,16 @@
     "baseline"
   ],
   "scripts": {
+    "build": "bun run clean && tsc -p tsconfig.json && bun scripts/fix-dist-imports.ts",
     "eval": "bun src/run.ts",
     "eval:select": "bun src/run.ts select",
     "eval:update": "UPDATE_BASELINE=1 bun src/run.ts",
-    "test": "bun test src/*.test.ts",
+    "test": "bun test src/*.test.ts scripts/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo *.tsbuildinfo"
+    "clean": "rm -rf dist .turbo *.tsbuildinfo",
+    "prepack": "bun run build",
+    "release": "bun scripts/release.ts",
+    "release:dry-run": "bun scripts/release.ts --dry-run"
   },
   "bin": {
     "goodit-evals": "bin/goodit-evals"
@@ -31,21 +35,22 @@
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
-      "import": "./src/index.ts",
+      "import": "./dist/src/index.js",
       "bun": "./src/index.ts",
       "default": "./dist/src/index.js"
     },
     "./preload": {
       "types": "./dist/src/preload.d.ts",
-      "import": "./src/preload.ts",
+      "import": "./dist/src/preload.js",
       "bun": "./src/preload.ts",
       "default": "./dist/src/preload.js"
     }
   },
   "files": [
     "bin",
-    "src",
-    "dist",
+    "src/*.ts",
+    "!src/*.test.ts",
+    "dist/src",
     "README.md",
     "LICENSE"
   ],
@@ -60,6 +65,9 @@
     "zod": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@ai-sdk/openai": "^3.0.41",

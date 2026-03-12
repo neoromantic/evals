@@ -562,7 +562,7 @@ acceptable for the specific task contract.
 
 When adding evals in this repo:
 
-1. Add a task file under `examples` or the target feature folder.
+1. Add a task file under `examples/` or the target feature folder.
 2. Add `*.eval.ts` with at least one deterministic scorer.
 3. If using LLM judges, include explicit metadata and rubric interpretation.
 4. Run:
@@ -573,7 +573,7 @@ When adding evals in this repo:
 
 ## Package Scripts
 
-From this package directory:
+From this package root:
 
 ```bash
 bun run eval         # run eval discovery + report
@@ -581,20 +581,79 @@ bun run eval:select  # choose eval files interactively, then run them
 bun run eval:update  # run and update baselines
 bun run test         # unit/integration tests for framework
 bun run typecheck
+bun run build
+bun run release -- --dry-run
 ```
 
-From repo root:
+## Release Workflow
+
+Use the local release command as the single entrypoint:
 
 ```bash
-bun run eval
-bun run eval:select
-bun run eval:update
+# preview the next release without changing files
+bun run release -- --dry-run
+
+# prepare changelog + docs, run validation, commit, tag, and push
+bun run release
+```
+
+What `bun run release` does:
+
+1. Requires a clean `main` branch checkout.
+2. Finds commits since the latest `v*` tag, or the latest release-style commit
+   if tags have not been backfilled yet.
+3. Infers the semver bump from commit messages:
+   - `feat:` -> minor
+   - `fix:`/`docs:`/`chore:` and similar -> patch
+   - `!:` or `BREAKING CHANGE` -> major
+4. Uses an LLM to draft the next `CHANGELOG.md` entry and optionally refresh
+   `README.md`.
+5. Runs `typecheck`, `test`, `build`, and `npm pack --dry-run`.
+6. Commits `package.json`, `CHANGELOG.md`, and `README.md` as
+   `release: vX.Y.Z`.
+7. Creates tag `vX.Y.Z` and pushes `main` plus the tag.
+8. Uses the LLM release draft to generate a short release tweet, then attempts
+   to post it via `twitter post "TEXT"`. If the `twitter` CLI is unavailable or
+   errors, the release still succeeds silently.
+
+The publish step happens in GitHub Actions on tag push. Configure:
+
+- npm trusted publishing for repo `neoromantic/evals` and workflow
+  `.github/workflows/publish.yml`
+- `GOODIT_RELEASE_LLM_PROVIDER` locally as `codex`, `claude`, or `command`
+- Optional `GOODIT_RELEASE_LLM_MODEL` locally to pin a non-default model
+- `GOODIT_RELEASE_LLM_COMMAND` locally if using `GOODIT_RELEASE_LLM_PROVIDER=command`
+
+This workflow uses GitHub OIDC trusted publishing, so `NPM_TOKEN` is not
+required in GitHub secrets.
+
+If `v0.6.0` has already been published without a matching git tag, create that
+tag once before the first automated release so future changelog ranges are
+correct.
+
+Examples:
+
+```bash
+# use Codex CLI
+export GOODIT_RELEASE_LLM_PROVIDER=codex
+
+# use Claude Code CLI
+export GOODIT_RELEASE_LLM_PROVIDER=claude
+
+# use a custom command that reads the prompt from stdin and prints JSON
+export GOODIT_RELEASE_LLM_PROVIDER=command
+export GOODIT_RELEASE_LLM_COMMAND='my-release-llm'
 ```
 
 ## Project Layout
 
 ```text
 .
+  CHANGELOG.md
+  README.md
+  scripts/
+    extract-changelog-entry.ts
+    release.ts
   src/
     aggregate.ts
     baseline.ts
