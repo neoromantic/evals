@@ -92,8 +92,7 @@ function parseDotenvValue(rawValue: string): string {
     return inner
   }
 
-  const uncommented = rawValue.replace(/\s+#.*$/, "").trim()
-  return uncommented
+  return rawValue.replace(/\s+#.*$/, "").trim()
 }
 
 export async function discoverEvalFiles(cwd: string): Promise<string[]> {
