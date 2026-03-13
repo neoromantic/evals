@@ -116,8 +116,10 @@ function aggregationsForKind(kind: MetricKind): AggOp[] {
 function computeAgg(op: AggOp, entries: AggregationEntry[]): number {
   switch (op) {
     case "sum":
+    case "count":
       return sum(entries)
     case "avg":
+    case "rate":
       return weightedAvg(entries)
     case "min":
       return min(entries)
@@ -127,10 +129,6 @@ function computeAgg(op: AggOp, entries: AggregationEntry[]): number {
       return percentile(entries, 50)
     case "p95":
       return percentile(entries, 95)
-    case "count":
-      return sum(entries)
-    case "rate":
-      return weightedAvg(entries)
   }
 }
 
