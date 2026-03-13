@@ -1,13 +1,12 @@
 import { parseCliArgs, runCli } from "./cli"
 
-const args = process.argv.slice(2)
-const { jsonOutput } = parseCliArgs(args)
+async function main(): Promise<void> {
+  const args = process.argv.slice(2)
+  const { jsonOutput } = parseCliArgs(args)
 
-runCli(args)
-  .then((exitCode) => {
-    process.exit(exitCode)
-  })
-  .catch((error) => {
+  try {
+    process.exit(await runCli(args))
+  } catch (error) {
     if (jsonOutput) {
       console.log(
         JSON.stringify(
@@ -21,9 +20,12 @@ runCli(args)
           2,
         ),
       )
-      process.exit(1)
+    } else {
+      console.error("Eval runner failed:", error)
     }
 
-    console.error("Eval runner failed:", error)
     process.exit(1)
-  })
+  }
+}
+
+void main()
