@@ -175,10 +175,6 @@ function sumTokenEstimates(estimates: TokenEstimate[]): TokenEstimate {
   }
 }
 
-function sumTestCounts(estimates: SuiteEstimate[]): number | null {
-  return sumNumbers(estimates.map((estimate) => estimate.testCount))
-}
-
 function hasDetailedSuites(baseline: BaselineFile): boolean {
   return Boolean(baseline._suites && Object.keys(baseline._suites).length > 0)
 }
@@ -222,7 +218,7 @@ export function buildEvalEstimate(
     workMs: sumNumbers(suites.map((suite) => suite.workMs)),
     wallLowerBoundMs: maxNumbers(suiteWallMs),
     wallUpperBoundMs: sumNumbers(suiteWallMs),
-    testCount: sumTestCounts(suites),
+    testCount: sumNumbers(suites.map((suite) => suite.testCount)),
     tokens: sumTokenEstimates(suites.map((suite) => suite.tokens)),
   }
 }
