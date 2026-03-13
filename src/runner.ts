@@ -161,6 +161,25 @@ function printDiscoveredEvalFiles(cwd: string, evalFiles: string[]): void {
   console.log()
 }
 
+function appendFailureDetails(
+  payload: unknown,
+  exitCode: number,
+  bunStdout: string,
+  bunStderr: string,
+): unknown {
+  if (exitCode === 0 || !payload || typeof payload !== "object") {
+    return payload
+  }
+
+  return {
+    ...payload,
+    success: false,
+    exitCode,
+    bunStdout,
+    bunStderr,
+  }
+}
+
 export async function runEvalFiles(
   options: RunEvalFilesOptions,
 ): Promise<number> {
@@ -229,6 +248,8 @@ export async function runEvalFiles(
     }
 
     const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise])
+    const bunStdout = stdout.trim()
+    const bunStderr = stderr.trim()
 
     let payload: unknown
     if (jsonOutputPath && existsSync(jsonOutputPath)) {
@@ -247,20 +268,12 @@ export async function runEvalFiles(
       payload = {
         generatedAt: new Date().toISOString(),
         error: "Eval run did not produce JSON output",
-        bunStdout: stdout.trim(),
-        bunStderr: stderr.trim(),
+        bunStdout,
+        bunStderr,
       }
     }
 
-    if (exitCode !== 0 && payload && typeof payload === "object") {
-      payload = {
-        ...payload,
-        success: false,
-        exitCode,
-        bunStdout: stdout.trim(),
-        bunStderr: stderr.trim(),
-      }
-    }
+    payload = appendFailureDetails(payload, exitCode, bunStdout, bunStderr)
 
     console.log(JSON.stringify(payload, null, 2))
     return exitCode
