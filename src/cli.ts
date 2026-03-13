@@ -38,6 +38,20 @@ function parseOptionalBooleanFlag(
   return rawValue === undefined ? true : parseBooleanFlagValue(rawValue)
 }
 
+function consumeBooleanFlag(
+  arg: string,
+  flags: Set<string>,
+  onMatch: (value: boolean) => void,
+): boolean {
+  const value = parseOptionalBooleanFlag(arg, flags)
+  if (value === undefined) {
+    return false
+  }
+
+  onMatch(value)
+  return true
+}
+
 export function parseCliArgs(args: string[]): ParsedCliArgs {
   const firstArg = args[0] ?? ""
   const isSelectCommand = SELECT_COMMANDS.has(firstArg)
@@ -49,15 +63,14 @@ export function parseCliArgs(args: string[]): ParsedCliArgs {
   let jsonOutput = false
 
   for (const arg of runnerArgs) {
-    const verboseValue = parseOptionalBooleanFlag(arg, VERBOSE_FLAGS)
-    if (verboseValue !== undefined) {
-      verboseReporting = verboseValue
-      continue
-    }
-
-    const jsonValue = parseOptionalBooleanFlag(arg, JSON_FLAGS)
-    if (jsonValue !== undefined) {
-      jsonOutput = jsonValue
+    if (
+      consumeBooleanFlag(arg, VERBOSE_FLAGS, (value) => {
+        verboseReporting = value
+      }) ||
+      consumeBooleanFlag(arg, JSON_FLAGS, (value) => {
+        jsonOutput = value
+      })
+    ) {
       continue
     }
 
