@@ -730,8 +730,7 @@ export async function selectEvalFilesInteractive(
   })
 
   try {
-    const result = await instance.waitUntilExit()
-    return result as SelectionResult
+    return (await instance.waitUntilExit()) as SelectionResult
   } finally {
     instance.cleanup()
   }
