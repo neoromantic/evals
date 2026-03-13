@@ -159,13 +159,6 @@ function formatUpdatedAt(value: string | null): string {
   }).format(date)
 }
 
-function selectedEntries(
-  entries: EvalFileEntry[],
-  selectionState: SelectionState,
-): EvalFileEntry[] {
-  return entries.filter((_, index) => selectionState.selected[index])
-}
-
 function selectedSummaryText(summary: EstimateSummary): string {
   if (summary.selectedCount === 0) {
     return "0 selected | choose at least one eval file"
@@ -385,7 +378,9 @@ function SelectorApp({ entries }: SelectorAppProps): React.ReactNode {
   )
   const focusedEntry = entries[selectionState.cursor]
   const selectedSummary = summarizeEvalEstimates(
-    selectedEntries(entries, selectionState).map((entry) => entry.estimate),
+    entries
+      .filter((_, index) => selectionState.selected[index])
+      .map((entry) => entry.estimate),
   )
   const listContentWidth = Math.max(32, listPanelWidth - 4)
   const detailsContentWidth = Math.max(30, detailsPanelWidth - 4)
