@@ -105,10 +105,7 @@ export function createBaselineFile(
 ): BaselineFile {
   const suiteData = buildSuiteBaselineData(aggregates, perTest)
   const file: BaselineFile = {
-    _meta: {
-      updatedAt: new Date().toISOString(),
-      evalFile: basename(evalFilePath),
-    },
+    _meta: createBaseMeta(evalFilePath),
     _aggregate: suiteData._aggregate,
   }
 
