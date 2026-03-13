@@ -161,12 +161,9 @@ function buildSuiteEstimates(
     )
   }
 
+  const evalFileLabel = basename(evalFile)
   return [
-    buildSuiteEstimate(
-      basename(evalFile),
-      basename(evalFile),
-      baseline._aggregate,
-    ),
+    buildSuiteEstimate(evalFileLabel, evalFileLabel, baseline._aggregate),
   ]
 }
 
@@ -188,6 +185,10 @@ function sumTokenEstimates(estimates: TokenEstimate[]): TokenEstimate {
 
 function sumTestCounts(estimates: SuiteEstimate[]): number | null {
   return sumNumbers(estimates.map((estimate) => estimate.testCount))
+}
+
+function hasDetailedSuites(baseline: BaselineFile): boolean {
+  return Boolean(baseline._suites && Object.keys(baseline._suites).length > 0)
 }
 
 export function buildEvalEstimate(
@@ -220,7 +221,7 @@ export function buildEvalEstimate(
     baselinePath,
     baselineUpdatedAt: baseline._meta.updatedAt,
     hasBaseline: true,
-    hasDetailedSuites: Boolean(baseline._suites && Object.keys(baseline._suites).length > 0),
+    hasDetailedSuites: hasDetailedSuites(baseline),
     suites,
     workMs: sumNumbers(suites.map((suite) => suite.workMs)),
     wallLowerBoundMs: maxNumbers(suiteWallMs),
