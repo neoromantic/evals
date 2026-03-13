@@ -228,19 +228,10 @@ function suiteHeader(contentWidth: number): string {
   const caseWidth = 5
   const labelWidth = Math.max(
     8,
-    contentWidth - labelWidthPadding(wallWidth, workWidth, tokenWidth, caseWidth),
+    contentWidth - wallWidth - workWidth - tokenWidth - caseWidth - 4,
   )
 
   return `${padRight("Suite", labelWidth)} ${padLeft("Wall", wallWidth)} ${padLeft("Work", workWidth)} ${padLeft("Tokens", tokenWidth)} ${padLeft("Cases", caseWidth)}`
-}
-
-function labelWidthPadding(
-  wallWidth: number,
-  workWidth: number,
-  tokenWidth: number,
-  caseWidth: number,
-): number {
-  return wallWidth + workWidth + tokenWidth + caseWidth + 4
 }
 
 function suiteRow(
@@ -257,7 +248,7 @@ function suiteRow(
   const caseWidth = 5
   const labelWidth = Math.max(
     8,
-    contentWidth - labelWidthPadding(wallWidth, workWidth, tokenWidth, caseWidth),
+    contentWidth - wallWidth - workWidth - tokenWidth - caseWidth - 4,
   )
 
   return `${padRight(truncateEnd(label, labelWidth), labelWidth)} ${padLeft(formatDuration(wallMs), wallWidth)} ${padLeft(formatDuration(workMs), workWidth)} ${padLeft(formatTokens(tokens), tokenWidth)} ${padLeft(testCount === null ? "--" : String(Math.round(testCount)), caseWidth)}`
