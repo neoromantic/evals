@@ -191,9 +191,7 @@ function registerTests<TInput, TOutput, TExpected>(
     for (const item of items) {
       testImpl(
         testLabel(item),
-        async () => {
-          await runSingleEval(suiteKey, suiteName, item, config, passThreshold)
-        },
+        () => runSingleEval(suiteKey, suiteName, item, config, passThreshold),
         timeout,
       )
     }
