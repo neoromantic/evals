@@ -161,9 +161,8 @@ function buildSuiteEstimates(
     )
   }
 
-  const evalFileLabel = basename(evalFile)
   return [
-    buildSuiteEstimate(evalFileLabel, evalFileLabel, baseline._aggregate),
+    buildSuiteEstimate(basename(evalFile), basename(evalFile), baseline._aggregate),
   ]
 }
 
