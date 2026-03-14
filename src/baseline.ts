@@ -45,9 +45,12 @@ export function getDefaultTolerance(metricName: string): number {
 }
 
 export function getMetricDirection(metricName: string): "higher" | "lower" {
-  if (/^score\b/.test(metricName)) return "higher"
-  if (/^throughput\b/.test(metricName)) return "higher"
-  if (metricName === "test.pass_rate") return "higher"
+  if (
+    /^score\b/.test(metricName) ||
+    /^throughput\b/.test(metricName) ||
+    metricName === "test.pass_rate"
+  )
+    return "higher"
   return "lower"
 }
 
