@@ -104,8 +104,5 @@ export function runWithTraces<T>(
   fn: () => T | Promise<T>,
 ): Promise<{ result: T; traces: TraceEntry[] }> {
   const traces: TraceEntry[] = []
-  return traceStorage.run(traces, async () => {
-    const result = await fn()
-    return { result, traces }
-  })
+  return traceStorage.run(traces, async () => ({ result: await fn(), traces }))
 }
