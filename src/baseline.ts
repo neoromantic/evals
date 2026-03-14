@@ -23,8 +23,7 @@ export function getBaselinePath(evalFilePath: string): string {
 export function loadBaseline(evalFilePath: string): BaselineFile | null {
   const path = getBaselinePath(evalFilePath)
   if (!existsSync(path)) return null
-  const raw = readFileSync(path, "utf-8")
-  return JSON.parse(raw) as BaselineFile
+  return JSON.parse(readFileSync(path, "utf-8")) as BaselineFile
 }
 
 export function saveBaseline(evalFilePath: string, data: BaselineFile): void {
