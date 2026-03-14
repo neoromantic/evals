@@ -158,7 +158,7 @@ function buildPassEntries(
     }
 
     return {
-      value: (hasScoreMetric ? passed : test.passed) ? 1 : 0,
+      value: !hasScoreMetric || passed ? 1 : 0,
       weight: test.weight,
     }
   })

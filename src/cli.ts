@@ -29,7 +29,7 @@ function parseOptionalBooleanFlag(
   arg: string,
   flags: Set<string>,
 ): boolean | undefined {
-  const [flag = "", rawValue] = arg.split("=", 2)
+  const [flag, rawValue] = arg.split("=", 2)
   if (!flags.has(flag)) {
     return undefined
   }
