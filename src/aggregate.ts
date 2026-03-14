@@ -132,10 +132,6 @@ function computeAgg(op: AggOp, entries: AggregationEntry[]): number {
   }
 }
 
-function metricKeyForCustomAggregation(name: string): string {
-  return name.includes(".") ? name.split(".").slice(0, -1).join(".") : name
-}
-
 function buildPassEntries(
   tests: TestMetrics[],
   passThreshold: number,
@@ -222,7 +218,9 @@ export function aggregateMetrics(
     for (const [name, aggregationFn] of Object.entries(
       suiteConfig.aggregations,
     )) {
-      const metricKey = metricKeyForCustomAggregation(name)
+      const metricKey = name.includes(".")
+        ? name.split(".").slice(0, -1).join(".")
+        : name
       const entries = entriesForMetric(tests, metricKey)
       result[name] = aggregationFn(entries)
     }
