@@ -167,14 +167,6 @@ function buildSuiteEstimates(
   ]
 }
 
-function emptyTokenEstimate(): TokenEstimate {
-  return {
-    input: null,
-    output: null,
-    total: null,
-  }
-}
-
 function sumTokenEstimates(estimates: TokenEstimate[]): TokenEstimate {
   return {
     input: sumNumbers(estimates.map((estimate) => estimate.input)),
@@ -209,7 +201,11 @@ export function buildEvalEstimate(
       wallLowerBoundMs: null,
       wallUpperBoundMs: null,
       testCount: null,
-      tokens: emptyTokenEstimate(),
+      tokens: {
+        input: null,
+        output: null,
+        total: null,
+      },
     }
   }
 
