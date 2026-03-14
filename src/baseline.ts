@@ -28,8 +28,11 @@ export function loadBaseline(evalFilePath: string): BaselineFile | null {
 }
 
 export function saveBaseline(evalFilePath: string, data: BaselineFile): void {
-  const path = getBaselinePath(evalFilePath)
-  writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`, "utf-8")
+  writeFileSync(
+    getBaselinePath(evalFilePath),
+    `${JSON.stringify(data, null, 2)}\n`,
+    "utf-8",
+  )
 }
 
 export function getDefaultTolerance(metricName: string): number {
