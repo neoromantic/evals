@@ -47,11 +47,9 @@ interface SelectorAppProps {
 }
 
 function normalizeItemCount(itemCount: number): number {
-  if (!Number.isFinite(itemCount) || itemCount <= 0) {
-    return 0
-  }
-
-  return Math.floor(itemCount)
+  return Number.isFinite(itemCount) && itemCount > 0
+    ? Math.floor(itemCount)
+    : 0
 }
 
 function padLeft(value: string, width: number): string {
