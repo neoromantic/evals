@@ -232,7 +232,7 @@ export function loadEvalEstimate(evalFile: string): EvalEstimate {
 }
 
 export function loadEvalEstimates(evalFiles: string[]): EvalEstimate[] {
-  return evalFiles.map((evalFile) => loadEvalEstimate(evalFile))
+  return evalFiles.map(loadEvalEstimate)
 }
 
 export function summarizeEvalEstimates(
