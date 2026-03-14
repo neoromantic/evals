@@ -19,12 +19,7 @@ export function createScorer<
 >(
   opts: ScorerOpts<TInput, TOutput, TExpected>,
 ): Scorer<TInput, TOutput, TExpected> {
-  return {
-    name: opts.name,
-    description: opts.description,
-    kind: opts.kind,
-    scorer: opts.scorer,
-  }
+  return opts
 }
 
 // ---------------------------------------------------------------------------
