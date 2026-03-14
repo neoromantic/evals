@@ -220,7 +220,7 @@ class Collector {
     suiteName: string,
     testName: string,
   ): TestMetrics {
-    const entry: TestMetrics = {
+    return {
       suiteKey,
       suiteName,
       testName,
@@ -228,9 +228,8 @@ class Collector {
       weight: 1,
       passed: true,
       scorerResults: [],
+      _phase: "task",
     }
-    entry._phase = "task"
-    return entry
   }
 }
 
