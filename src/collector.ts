@@ -74,9 +74,7 @@ class Collector {
     const entry = this.createTestEntry(suiteKey, suiteName, testName)
     this.testResults.push(entry)
 
-    return await this.currentEntryStorage.run(entry, async () => {
-      return await fn()
-    })
+    return this.currentEntryStorage.run(entry, fn)
   }
 
   endTest(): void {
