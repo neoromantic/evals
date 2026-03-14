@@ -42,9 +42,7 @@ export function loadDotenvEnv(cwd: string): Record<string, string> {
       continue
     }
 
-    const content = readFileSync(filepath, "utf-8")
-    const parsed = parseDotenvContent(content)
-    Object.assign(loaded, parsed)
+    Object.assign(loaded, parseDotenvContent(readFileSync(filepath, "utf-8")))
   }
 
   return loaded
@@ -92,8 +90,7 @@ function parseDotenvValue(rawValue: string): string {
     return inner
   }
 
-  const uncommented = rawValue.replace(/\s+#.*$/, "").trim()
-  return uncommented
+  return rawValue.replace(/\s+#.*$/, "").trim()
 }
 
 export async function discoverEvalFiles(cwd: string): Promise<string[]> {

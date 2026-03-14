@@ -74,9 +74,7 @@ class Collector {
     const entry = this.createTestEntry(suiteKey, suiteName, testName)
     this.testResults.push(entry)
 
-    return await this.currentEntryStorage.run(entry, async () => {
-      return await fn()
-    })
+    return this.currentEntryStorage.run(entry, fn)
   }
 
   endTest(): void {
@@ -222,7 +220,7 @@ class Collector {
     suiteName: string,
     testName: string,
   ): TestMetrics {
-    const entry: TestMetrics = {
+    return {
       suiteKey,
       suiteName,
       testName,
@@ -230,9 +228,8 @@ class Collector {
       weight: 1,
       passed: true,
       scorerResults: [],
+      _phase: "task",
     }
-    entry._phase = "task"
-    return entry
   }
 }
 

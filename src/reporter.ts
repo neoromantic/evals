@@ -152,10 +152,11 @@ function appendBaselineComparison(
     metricName,
     currentComparison.baseline,
   )
-  let nextLine = line
-  nextLine += `${dim("was")} ${padRight(baselineFormatted, 10)}`
-  nextLine += formatChange(currentComparison)
-  return nextLine
+  return (
+    line +
+    `${dim("was")} ${padRight(baselineFormatted, 10)}` +
+    formatChange(currentComparison)
+  )
 }
 
 interface PrintSuiteReportOptions {

@@ -34,7 +34,6 @@ export async function measure<T>(
     result = await fn(ctx)
   } catch (err) {
     error = true
-    collector.recordMetric("error", 1)
     collector.setTestPassed(false)
     throw err // Re-throw so bun test catches it
   } finally {

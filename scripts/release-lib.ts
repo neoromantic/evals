@@ -79,7 +79,7 @@ export function extractChangelogSection(content: string, version: string): strin
   let end = lines.length
 
   for (let index = start + 1; index < lines.length; index += 1) {
-    if (lines[index]?.startsWith("## ")) {
+    if (lines[index].startsWith("## ")) {
       end = index
       break
     }

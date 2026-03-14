@@ -49,7 +49,7 @@ function rewriteMatch(
   specifier: string,
   suffix: string,
 ): string {
-  if (!specifier.startsWith(".") || hasKnownExtension(specifier)) {
+  if (hasKnownExtension(specifier)) {
     return `${prefix}${specifier}${suffix}`
   }
 
