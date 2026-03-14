@@ -157,13 +157,6 @@ function formatUpdatedAt(value: string | null): string {
   }).format(date)
 }
 
-function selectedEntries(
-  entries: EvalFileEntry[],
-  selectionState: SelectionState,
-): EvalFileEntry[] {
-  return entries.filter((_, index) => selectionState.selected[index])
-}
-
 function selectedSummaryText(summary: EstimateSummary): string {
   if (summary.selectedCount === 0) {
     return "0 selected | choose at least one eval file"
@@ -233,19 +226,10 @@ function suiteHeader(contentWidth: number): string {
   const caseWidth = 5
   const labelWidth = Math.max(
     8,
-    contentWidth - labelWidthPadding(wallWidth, workWidth, tokenWidth, caseWidth),
+    contentWidth - wallWidth - workWidth - tokenWidth - caseWidth - 4,
   )
 
   return `${padRight("Suite", labelWidth)} ${padLeft("Wall", wallWidth)} ${padLeft("Work", workWidth)} ${padLeft("Tokens", tokenWidth)} ${padLeft("Cases", caseWidth)}`
-}
-
-function labelWidthPadding(
-  wallWidth: number,
-  workWidth: number,
-  tokenWidth: number,
-  caseWidth: number,
-): number {
-  return wallWidth + workWidth + tokenWidth + caseWidth + 4
 }
 
 function suiteRow(
@@ -262,7 +246,7 @@ function suiteRow(
   const caseWidth = 5
   const labelWidth = Math.max(
     8,
-    contentWidth - labelWidthPadding(wallWidth, workWidth, tokenWidth, caseWidth),
+    contentWidth - wallWidth - workWidth - tokenWidth - caseWidth - 4,
   )
 
   return `${padRight(truncateEnd(label, labelWidth), labelWidth)} ${padLeft(formatDuration(wallMs), wallWidth)} ${padLeft(formatDuration(workMs), workWidth)} ${padLeft(formatTokens(tokens), tokenWidth)} ${padLeft(testCount === null ? "--" : String(Math.round(testCount)), caseWidth)}`
@@ -383,7 +367,9 @@ function SelectorApp({ entries }: SelectorAppProps): React.ReactNode {
   )
   const focusedEntry = entries[selectionState.cursor]
   const selectedSummary = summarizeEvalEstimates(
-    selectedEntries(entries, selectionState).map((entry) => entry.estimate),
+    entries
+      .filter((_, index) => selectionState.selected[index])
+      .map((entry) => entry.estimate),
   )
   const listContentWidth = Math.max(32, listPanelWidth - 4)
   const detailsContentWidth = Math.max(30, detailsPanelWidth - 4)
@@ -728,8 +714,7 @@ export async function selectEvalFilesInteractive(
   })
 
   try {
-    const result = await instance.waitUntilExit()
-    return result as SelectionResult
+    return (await instance.waitUntilExit()) as SelectionResult
   } finally {
     instance.cleanup()
   }

@@ -160,13 +160,6 @@ export function getAsyncSuiteTimeout(
 // Helpers
 // ---------------------------------------------------------------------------
 
-function applyOnlyFilter<TInput, TExpected>(
-  data: EvalData<TInput, TExpected>[],
-): EvalData<TInput, TExpected>[] {
-  const hasOnly = data.some((d) => d.only)
-  return hasOnly ? data.filter((d) => d.only) : data
-}
-
 function testLabel<TInput>(item: EvalData<TInput, unknown>): string {
   if (typeof item.name === "string" && item.name.trim().length > 0) {
     return item.name.trim()
@@ -184,7 +177,7 @@ function registerTests<TInput, TOutput, TExpected>(
   passThreshold: number,
   timeout: number,
 ): void {
-  const items = applyOnlyFilter(data)
+  const items = data.some((d) => d.only) ? data.filter((d) => d.only) : data
   const testImpl = getCaseTestImplementation()
 
   describe(suiteName, () => {
@@ -271,7 +264,7 @@ async function runDataItemsWithTimeout<TInput, TOutput, TExpected>(
   passThreshold: number,
   timeout: number,
 ): Promise<void> {
-  const items = applyOnlyFilter(data)
+  const items = data.some((d) => d.only) ? data.filter((d) => d.only) : data
   const asyncSuiteTimeout = getAsyncSuiteTimeout(timeout, items.length)
 
   await withTimeout(
