@@ -71,7 +71,7 @@ export interface EvalSuiteConfig<
         | EvalData<TInput, TExpected>[]
         | Promise<EvalData<TInput, TExpected>[]>)
   task: (input: TInput) => Promise<TOutput>
-  scorers: Scorer<TInput, TOutput, TExpected>[]
+  scorers?: Scorer<TInput, TOutput, TExpected>[]
   passThreshold?: number
   aggregations?: Record<string, (entries: AggregationEntry[]) => number>
   timeout?: number // Default: 30000

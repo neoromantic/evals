@@ -368,6 +368,47 @@ function printVerboseScorerDetails(report: SuiteReport): void {
   }
 }
 
+function printPerTestResults(report: SuiteReport): void {
+  if (report.tests.length === 0) return
+
+  const hasScorers = report.tests.some((t) => t.scorerResults.length > 0)
+  if (!hasScorers) return
+
+  console.log(bold(" RESULTS"))
+
+  for (const test of report.tests) {
+    if (test.scorerResults.length === 0) continue
+
+    const avg =
+      test.scorerResults.reduce((sum, r) => sum + r.score, 0) /
+      test.scorerResults.length
+    const status =
+      avg >= report.passThreshold ? green("PASS") : red("FAIL")
+    console.log(
+      `   ${cyan(test.displayName)}  ${status}  ${avg.toFixed(2)}`,
+    )
+
+    const nameWidth =
+      Math.max(
+        ...test.scorerResults.map((r) => r.name.length),
+        12,
+      ) + 2
+
+    for (const result of test.scorerResults) {
+      const label =
+        result.name.length > 56
+          ? `${result.name.slice(0, 53)}...`
+          : result.name
+      const scoreStatus =
+        result.score >= report.passThreshold
+          ? green("PASS")
+          : red("FAIL")
+      console.log(`     ${padRight(label, Math.min(nameWidth, 58))}${scoreStatus}`)
+    }
+    console.log("")
+  }
+}
+
 function detectBooleanScores(report: SuiteReport): Set<string> {
   const booleans = new Set<string>()
   const nonBooleans = new Set<string>()
@@ -548,6 +589,8 @@ export function printSuiteReport(
     ),
   )
   console.log(` ${light}`)
+
+  printPerTestResults(report)
 
   // Aggregates (skip NaN values)
   const aggEntries = Object.entries(report.aggregates).filter(

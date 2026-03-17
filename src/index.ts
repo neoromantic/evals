@@ -1,5 +1,7 @@
 // @goodit/evals — Public API
 
+export { Facts, isFactsCheck } from "./checks"
+export type { FactsCheck } from "./checks"
 export { collector } from "./collector"
 export { evalSuite } from "./eval-suite"
 export {

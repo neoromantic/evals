@@ -1,7 +1,8 @@
 import { describe, test } from "bun:test"
+import { isFactsCheck, resolveCheckScorers } from "./checks"
 import { collector } from "./collector"
 import { measure } from "./measure"
-import type { EvalData, EvalSuiteConfig } from "./types"
+import type { EvalData, EvalSuiteConfig, ScorerResult } from "./types"
 
 const ASYNC_SUITE_BUN_TIMEOUT_MULTIPLIER = 1000
 const EVAL_STACK_PATH_REGEX =
@@ -360,7 +361,6 @@ async function runSingleEval<TInput, TOutput, TExpected>(
   passThreshold: number,
 ): Promise<void> {
   const name = testLabel(item)
-  const scoreValues: number[] = []
 
   await collector.runTest(suiteKey, suiteName, name, async () => {
     await measure(async (m) => {
@@ -368,7 +368,6 @@ async function runSingleEval<TInput, TOutput, TExpected>(
         m.weight(item.weight)
       }
 
-      // Run the task
       const output = await config.task(item.input)
 
       m.taskEnd()
@@ -380,38 +379,65 @@ async function runSingleEval<TInput, TOutput, TExpected>(
         expected: item.expected,
       })
 
-      // Run each scorer and record results
-      for (const scorer of config.scorers) {
-        const rawResult = await scorer.scorer({
-          input: item.input,
-          output: output as TOutput,
-          expected: item.expected,
-        })
+      let scorerResults: ScorerResult[]
 
-        let scoreValue: number
-        let metadata: unknown
+      if (config.scorers) {
+        scorerResults = await Promise.all(
+          config.scorers.map(async (scorer) => {
+            const rawResult = await scorer.scorer({
+              input: item.input,
+              output: output as TOutput,
+              expected: item.expected,
+            })
 
-        if (typeof rawResult === "number") {
-          scoreValue = rawResult
-        } else {
-          scoreValue = rawResult.score
-          metadata = rawResult.metadata
-        }
-
-        scoreValues.push(scoreValue)
-        m.score(scorer.name, scoreValue)
-
-        collector.addScorerResult({
-          name: scorer.name,
-          score: scoreValue,
-          description: scorer.description,
-          metadata,
-          kind: scorer.kind,
-        })
+            if (typeof rawResult === "number") {
+              return {
+                score: rawResult,
+                name: scorer.name,
+                description: scorer.description,
+                kind: scorer.kind,
+              }
+            }
+            return {
+              score: rawResult.score,
+              name: scorer.name,
+              description: scorer.description,
+              metadata: rawResult.metadata,
+              kind: scorer.kind,
+            }
+          }),
+        )
+      } else if (isFactsCheck(item.expected)) {
+        scorerResults = await resolveCheckScorers(
+          item.expected,
+          item.input,
+          output,
+        )
+      } else {
+        throw new Error(
+          `Eval "${name}": no scorers provided and expected is not a recognized check type. ` +
+            "Use Facts([...]) or provide explicit scorers.",
+        )
       }
 
-      // A test passes when every scorer >= threshold.
-      if (scoreValues.some((scoreValue) => scoreValue < passThreshold)) {
+      const fromChecks = !config.scorers
+
+      if (fromChecks) {
+        const avg =
+          scorerResults.reduce((sum, r) => sum + r.score, 0) /
+          scorerResults.length
+        m.score("checks", avg)
+      } else {
+        for (const result of scorerResults) {
+          m.score(result.name, result.score)
+        }
+      }
+
+      for (const result of scorerResults) {
+        collector.addScorerResult(result)
+      }
+
+      if (scorerResults.some((r) => r.score < passThreshold)) {
         collector.setTestPassed(false)
       }
 

@@ -92,7 +92,8 @@ describe("reporter verbose scorer diagnostics", () => {
     expect(output).toContain("SCORER DETAILS (2 of 3)")
     expect(output).toContain("low-only")
     expect(output).toContain("failing")
-    expect(output).not.toContain("perfect")
+    const scorerDetails = output.split("SCORER DETAILS")[1]!
+    expect(scorerDetails).not.toContain("perfect")
     expect(output).toContain("no hard failures")
     expect(output).toContain("1 below threshold")
     expect(output).toContain("LOW")
