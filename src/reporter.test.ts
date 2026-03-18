@@ -85,7 +85,7 @@ describe("reporter verbose scorer diagnostics", () => {
       createVerboseTest("failing", [0.3, 1]),
     ])
 
-    const output = stripAnsi(
+    const output = Bun.stripANSI(
       captureLogs(() => printSuiteReport(report, undefined, { verbose: true })),
     )
 
@@ -107,7 +107,7 @@ describe("reporter verbose scorer diagnostics", () => {
       createVerboseTest("all-good-b", [1, 1]),
     ])
 
-    const output = stripAnsi(
+    const output = Bun.stripANSI(
       captureLogs(() => printSuiteReport(report, undefined, { verbose: true })),
     )
 
@@ -154,7 +154,7 @@ describe("reporter variant comparison tables", () => {
       },
     ]
 
-    const output = stripAnsi(
+    const output = Bun.stripANSI(
       captureLogs(() => printVariantComparisonTables(reports)),
     )
 
@@ -209,28 +209,3 @@ function captureLogs(fn: () => void): string {
   return lines.join("\n")
 }
 
-function stripAnsi(value: string): string {
-  let output = ""
-  let insideAnsiSequence = false
-
-  for (let index = 0; index < value.length; index += 1) {
-    const char = value[index]
-    const nextChar = value[index + 1]
-
-    if (!insideAnsiSequence && char === "\u001b" && nextChar === "[") {
-      insideAnsiSequence = true
-      continue
-    }
-
-    if (insideAnsiSequence) {
-      if (char === "m") {
-        insideAnsiSequence = false
-      }
-      continue
-    }
-
-    output += char
-  }
-
-  return output
-}
