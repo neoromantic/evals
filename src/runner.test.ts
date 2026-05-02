@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { buildBunTestArgs, discoverEvalFiles, loadDotenvEnv } from "./runner"
@@ -31,7 +31,11 @@ describe("buildBunTestArgs", () => {
   test("includes preload path, timeout, eval files, and passthrough args", () => {
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     expect(
-      buildBunTestArgs(["/tmp/a.eval.ts"], ["--test-name-pattern", "suite"], preloadPath),
+      buildBunTestArgs(
+        ["/tmp/a.eval.ts"],
+        ["--test-name-pattern", "suite"],
+        preloadPath,
+      ),
     ).toEqual([
       "test",
       "--preload",

@@ -46,7 +46,10 @@ export const ContainsAll = createScorer<string, string, string[]>({
     const terms = expected ?? []
     if (terms.length === 0) return 1
     const lower = String(output).toLowerCase()
-    return terms.filter((t) => lower.includes(String(t).toLowerCase())).length / terms.length
+    return (
+      terms.filter((t) => lower.includes(String(t).toLowerCase())).length /
+      terms.length
+    )
   },
 })
 

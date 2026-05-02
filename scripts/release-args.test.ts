@@ -23,6 +23,8 @@ describe("parseReleaseArgs", () => {
   })
 
   test("rejects unknown flags", () => {
-    expect(() => parseReleaseArgs(["--nope"])).toThrow("Unknown argument: --nope")
+    expect(() => parseReleaseArgs(["--nope"])).toThrow(
+      "Unknown argument: --nope",
+    )
   })
 })

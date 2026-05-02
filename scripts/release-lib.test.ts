@@ -79,7 +79,9 @@ describe("extractChangelogSection", () => {
 
 describe("parseReleaseHeading", () => {
   test("extracts version and date", () => {
-    expect(parseReleaseHeading("## 0.7.0 - 2026-03-12\n\nRelease body.")).toEqual({
+    expect(
+      parseReleaseHeading("## 0.7.0 - 2026-03-12\n\nRelease body."),
+    ).toEqual({
       version: "0.7.0",
       date: "2026-03-12",
     })

@@ -32,11 +32,16 @@ describe("selection state helpers", () => {
   })
 
   test("toggles the focused item and returns selected files in order", () => {
-    const stateAfterFirstToggle = toggleHighlightedSelection(createSelectionState(3))
+    const stateAfterFirstToggle = toggleHighlightedSelection(
+      createSelectionState(3),
+    )
     const stateWithThirdFocused = setCursor(stateAfterFirstToggle, 3, 2)
     const finalState = toggleHighlightedSelection(stateWithThirdFocused)
 
-    expect(getSelectedEvalFiles(["a", "b", "c"], finalState)).toEqual(["a", "c"])
+    expect(getSelectedEvalFiles(["a", "b", "c"], finalState)).toEqual([
+      "a",
+      "c",
+    ])
   })
 
   test("toggles all items on and back off", () => {

@@ -1,16 +1,17 @@
 import { relative } from "node:path"
-import React, { createElement, useEffect, useState } from "react"
 import {
   Box,
   Newline,
-  Text,
   render,
+  Text,
   useApp,
   useInput,
   useStdin,
   useStdout,
 } from "ink"
-import type { EvalEstimate, EstimateSummary } from "./estimates"
+import type React from "react"
+import { createElement, useEffect, useState } from "react"
+import type { EstimateSummary, EvalEstimate } from "./estimates"
 import { summarizeEvalEstimates } from "./estimates"
 
 export interface SelectionState {
@@ -47,17 +48,19 @@ interface SelectorAppProps {
 }
 
 function normalizeItemCount(itemCount: number): number {
-  return Number.isFinite(itemCount) && itemCount > 0
-    ? Math.floor(itemCount)
-    : 0
+  return Number.isFinite(itemCount) && itemCount > 0 ? Math.floor(itemCount) : 0
 }
 
 function padLeft(value: string, width: number): string {
-  return value.length >= width ? value : `${" ".repeat(width - value.length)}${value}`
+  return value.length >= width
+    ? value
+    : `${" ".repeat(width - value.length)}${value}`
 }
 
 function padRight(value: string, width: number): string {
-  return value.length >= width ? value : `${value}${" ".repeat(width - value.length)}`
+  return value.length >= width
+    ? value
+    : `${value}${" ".repeat(width - value.length)}`
 }
 
 function truncateEnd(value: string, width: number): string {
@@ -319,7 +322,11 @@ function detailsPanel(
 
   nodes.push(
     createElement(Text, { key: "suite-title", bold: true }, "Suite Breakdown"),
-    createElement(Text, { key: "suite-header", dimColor: true }, suiteHeader(contentWidth)),
+    createElement(
+      Text,
+      { key: "suite-header", dimColor: true },
+      suiteHeader(contentWidth),
+    ),
     ...suiteRows.map((suite) =>
       createElement(
         Text,
@@ -539,7 +546,9 @@ function SelectorApp({ entries }: SelectorAppProps): React.ReactNode {
             Box,
             {
               borderStyle: "round",
-              borderColor: focusedEntry.estimate.hasBaseline ? "green" : "yellow",
+              borderColor: focusedEntry.estimate.hasBaseline
+                ? "green"
+                : "yellow",
               paddingX: 1,
               paddingY: 0,
               width: detailsPanelWidth,
@@ -687,24 +696,23 @@ export async function selectEvalFilesInteractive(
   const entries = evalFiles.map((file) => ({
     file,
     label: relative(cwd, file),
-    estimate:
-      estimateByFile.get(file) ?? {
-        evalFile: file,
-        baselinePath: "",
-        baselineUpdatedAt: null,
-        hasBaseline: false,
-        hasDetailedSuites: false,
-        suites: [],
-        workMs: null,
-        wallLowerBoundMs: null,
-        wallUpperBoundMs: null,
-        testCount: null,
-        tokens: {
-          input: null,
-          output: null,
-          total: null,
-        },
+    estimate: estimateByFile.get(file) ?? {
+      evalFile: file,
+      baselinePath: "",
+      baselineUpdatedAt: null,
+      hasBaseline: false,
+      hasDetailedSuites: false,
+      suites: [],
+      workMs: null,
+      wallLowerBoundMs: null,
+      wallUpperBoundMs: null,
+      testCount: null,
+      tokens: {
+        input: null,
+        output: null,
+        total: null,
       },
+    },
   }))
   const app = createElement(SelectorApp, { entries })
   const instance = render(app, {

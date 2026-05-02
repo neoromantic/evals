@@ -7,34 +7,32 @@ interface BriefingExpected {
   requiredTerms: string[]
 }
 
-const FactualityScorer = createLLMJudgeScorer<
-  string,
-  string,
-  BriefingExpected
->({
-  name: "Factuality",
-  description:
-    "LLM judge: factual consistency against reference briefing (allows extra consistent facts)",
-  judge: async ({ input, output, expected }) => {
-    const reference = expected?.reference
-    if (!reference) {
-      return { score: 0, metadata: { error: "Missing expected.reference" } }
-    }
+const FactualityScorer = createLLMJudgeScorer<string, string, BriefingExpected>(
+  {
+    name: "Factuality",
+    description:
+      "LLM judge: factual consistency against reference briefing (allows extra consistent facts)",
+    judge: async ({ input, output, expected }) => {
+      const reference = expected?.reference
+      if (!reference) {
+        return { score: 0, metadata: { error: "Missing expected.reference" } }
+      }
 
-    const result = await Factuality({
-      input: `Country briefing request for: ${input}`,
-      output,
-      expected: reference,
-    })
+      const result = await Factuality({
+        input: `Country briefing request for: ${input}`,
+        output,
+        expected: reference,
+      })
 
-    const rawScore = result.score ?? 0
-    const choice = (result.metadata as any)?.choice as string | undefined
-    // Consistent supersets (choice B) are fully acceptable for this task
-    const score = choice === "B" ? 1 : rawScore
+      const rawScore = result.score ?? 0
+      const choice = (result.metadata as any)?.choice as string | undefined
+      // Consistent supersets (choice B) are fully acceptable for this task
+      const score = choice === "B" ? 1 : rawScore
 
-    return { score, metadata: { ...result.metadata, rawScore } }
+      return { score, metadata: { ...result.metadata, rawScore } }
+    },
   },
-})
+)
 
 const RequiredFactsCoverage = createScorer<string, string, BriefingExpected>({
   name: "RequiredFactsCoverage",

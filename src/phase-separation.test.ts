@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { collector } from "./collector"
 import { aggregateMetrics } from "./aggregate"
-import { displayMetricName } from "./reporter"
+import { collector } from "./collector"
 import { createLLMJudgeScorer, wrapAutoeval } from "./llm-scorer"
-import { createScorer } from "./scorer"
 import { measure } from "./measure"
+import { displayMetricName } from "./reporter"
+import { createScorer } from "./scorer"
 import type { TestMetrics } from "./types"
 
 afterEach(() => {
@@ -250,7 +250,11 @@ describe("aggregateMetrics with new metric names", () => {
   test("existing latency and tokens.* aggregations still work", () => {
     const tests: TestMetrics[] = [
       makeTestMetrics({ latency: 100, "tokens.input": 10, "tokens.output": 5 }),
-      makeTestMetrics({ latency: 200, "tokens.input": 20, "tokens.output": 15 }),
+      makeTestMetrics({
+        latency: 200,
+        "tokens.input": 20,
+        "tokens.output": 15,
+      }),
     ]
 
     const agg = aggregateMetrics(tests)
@@ -461,7 +465,9 @@ describe("wrapAutoeval", () => {
   })
 
   test("passes input/output/expected as strings", async () => {
-    let capturedArgs: { input: string; output: string; expected?: string } | undefined
+    let capturedArgs:
+      | { input: string; output: string; expected?: string }
+      | undefined
 
     const scorer = wrapAutoeval({
       name: "StringCheck",

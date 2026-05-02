@@ -10,6 +10,7 @@ const red = (s: string) => `\x1b[31m${s}\x1b[39m`
 const cyan = (s: string) => `\x1b[36m${s}\x1b[39m`
 
 function stripAnsi(s: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences use ESC.
   return s.replace(/\x1b\[[0-9;]*m/g, "")
 }
 
@@ -24,8 +25,8 @@ const GROUPED_AGGREGATE_RE =
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
   "test.count": "Tests",
   "test.pass_rate": "Pass Rate",
-  "latency": "Latency",
-  "ttfb": "TTFB",
+  latency: "Latency",
+  ttfb: "TTFB",
   "latency.scoring": "Scoring Latency",
   "latency.total": "Total Latency",
   "tokens.input.sum": "Input Tokens",
@@ -48,7 +49,9 @@ export function displayMetricName(name: string): string {
   if (direct) return direct
 
   // score.X.avg → X (avg), score.X.min → X (min)
-  const scoreAgg = name.match(/^score\.(.+)\.(avg|min|max|p50|p95|sum|count|rate)$/)
+  const scoreAgg = name.match(
+    /^score\.(.+)\.(avg|min|max|p50|p95|sum|count|rate)$/,
+  )
   if (scoreAgg) return `${scoreAgg[1]} (${scoreAgg[2]})`
 
   // score.X → X (per-test, no agg suffix)
@@ -382,28 +385,20 @@ function printPerTestResults(report: SuiteReport): void {
     const avg =
       test.scorerResults.reduce((sum, r) => sum + r.score, 0) /
       test.scorerResults.length
-    const status =
-      avg >= report.passThreshold ? green("PASS") : red("FAIL")
-    console.log(
-      `   ${cyan(test.displayName)}  ${status}  ${avg.toFixed(2)}`,
-    )
+    const status = avg >= report.passThreshold ? green("PASS") : red("FAIL")
+    console.log(`   ${cyan(test.displayName)}  ${status}  ${avg.toFixed(2)}`)
 
     const nameWidth =
-      Math.max(
-        ...test.scorerResults.map((r) => r.name.length),
-        12,
-      ) + 2
+      Math.max(...test.scorerResults.map((r) => r.name.length), 12) + 2
 
     for (const result of test.scorerResults) {
       const label =
-        result.name.length > 56
-          ? `${result.name.slice(0, 53)}...`
-          : result.name
+        result.name.length > 56 ? `${result.name.slice(0, 53)}...` : result.name
       const scoreStatus =
-        result.score >= report.passThreshold
-          ? green("PASS")
-          : red("FAIL")
-      console.log(`     ${padRight(label, Math.min(nameWidth, 58))}${scoreStatus}`)
+        result.score >= report.passThreshold ? green("PASS") : red("FAIL")
+      console.log(
+        `     ${padRight(label, Math.min(nameWidth, 58))}${scoreStatus}`,
+      )
     }
     console.log("")
   }
@@ -474,8 +469,10 @@ function groupMetricAggregates(
       kind = "score"
       primaryOp = "avg"
     } else if (
-      baseName === "latency" || baseName.startsWith("latency.") ||
-      baseName === "ttfb" || baseName.startsWith("ttfb.")
+      baseName === "latency" ||
+      baseName.startsWith("latency.") ||
+      baseName === "ttfb" ||
+      baseName.startsWith("ttfb.")
     ) {
       kind = "latency"
       primaryOp = "avg"
@@ -519,10 +516,7 @@ function isGroupedAggregateKey(key: string): boolean {
   return GROUPED_AGGREGATE_RE.test(key)
 }
 
-function formatMetricGroupLine(
-  group: MetricGroup,
-  labelWidth: number,
-): string {
+function formatMetricGroupLine(group: MetricGroup, labelWidth: number): string {
   const fmtValue = (v: number) => {
     if (group.kind === "score") return formatScoreValue(v, group.isBoolean)
     return formatMetricValue(group.baseName, v)
@@ -602,20 +596,14 @@ export function printSuiteReport(
   if (aggEntries.length > 0) {
     console.log(bold(" AGGREGATES"))
 
-    const metricGroups = groupMetricAggregates(
-      report.aggregates,
-      booleanScores,
-    )
+    const metricGroups = groupMetricAggregates(report.aggregates, booleanScores)
     const nonGroupedEntries = aggEntries.filter(
       ([key]) => !isGroupedAggregateKey(key),
     )
 
     const groupLabelWidth =
       metricGroups.length > 0
-        ? Math.max(
-            ...metricGroups.map((g) => g.displayLabel.length),
-            12,
-          ) + 2
+        ? Math.max(...metricGroups.map((g) => g.displayLabel.length), 12) + 2
         : 0
     const nonGroupedNameWidth =
       nonGroupedEntries.length > 0
@@ -669,8 +657,7 @@ export function printSuiteReport(
       for (const comp of comps) {
         const label = displayMetricName(comp.metric)
         const isBoolean =
-          comp.metric.startsWith("score.") &&
-          booleanScores.has(comp.metric)
+          comp.metric.startsWith("score.") && booleanScores.has(comp.metric)
 
         const formatted = isBoolean
           ? formatScoreValue(comp.current, true)
@@ -866,7 +853,8 @@ function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
   // Only show .avg for scores in variant comparison (min/max/p50/p95 shown inline)
   const filtered = metrics.filter((name) => {
     if (name.startsWith("score.")) return name.endsWith(".avg")
-    if (name.startsWith("latency") || name.startsWith("ttfb")) return name.endsWith(".avg")
+    if (name.startsWith("latency") || name.startsWith("ttfb"))
+      return name.endsWith(".avg")
     if (name.startsWith("tokens.")) return name.endsWith(".sum")
     return true
   })
@@ -889,7 +877,8 @@ function metricPriority(metricName: string): number {
   if (metricName === "latency.total.avg") return 2.2
   if (metricName === "test.pass_rate") return 3
   if (metricName === "error.rate") return 4
-  if (metricName.startsWith("tokens.scorer.") && metricName.endsWith(".sum")) return 5.1
+  if (metricName.startsWith("tokens.scorer.") && metricName.endsWith(".sum"))
+    return 5.1
   if (metricName.startsWith("tokens.") && metricName.endsWith(".sum")) return 5
   return 10
 }

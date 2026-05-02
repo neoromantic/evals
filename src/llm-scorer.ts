@@ -42,8 +42,7 @@ export function createLLMJudgeScorer<
             return {
               score: opts.errorScore ?? 0,
               metadata: {
-                error:
-                  error instanceof Error ? error.message : String(error),
+                error: error instanceof Error ? error.message : String(error),
                 retriesExhausted: true,
                 attempts: attempt + 1,
               },
@@ -69,10 +68,7 @@ interface WrapAutoevalOpts {
     output: string
     expected?: string
   }) => Promise<{ score: number | null; metadata?: Record<string, unknown> }>
-  normalizeScore?: (
-    raw: number,
-    metadata?: Record<string, unknown>,
-  ) => number
+  normalizeScore?: (raw: number, metadata?: Record<string, unknown>) => number
   retries?: number
   retryDelayMs?: number
 }
@@ -124,11 +120,7 @@ export function SemanticMatch(
       const { object } = await generateObject({
         model: opts.model,
         schema: z.object({
-          score: z
-            .number()
-            .min(0)
-            .max(1)
-            .describe("Semantic similarity 0-1"),
+          score: z.number().min(0).max(1).describe("Semantic similarity 0-1"),
           rationale: z.string().describe("Brief explanation"),
         }),
         prompt: [
@@ -158,9 +150,7 @@ interface MatchesIntentOpts {
   intent: string
 }
 
-export function MatchesIntent(
-  opts: MatchesIntentOpts,
-): Scorer<string, string> {
+export function MatchesIntent(opts: MatchesIntentOpts): Scorer<string, string> {
   return createLLMJudgeScorer<string, string>({
     name: "MatchesIntent",
     description: `LLM judge: output matches intent "${opts.intent}"`,
@@ -210,9 +200,7 @@ export function SemanticContains(
       const { object } = await generateObject({
         model: opts.model,
         schema: z.object({
-          found: z
-            .array(z.string())
-            .describe("Concepts found in the output"),
+          found: z.array(z.string()).describe("Concepts found in the output"),
           missing: z
             .array(z.string())
             .describe("Concepts not found in the output"),
@@ -248,9 +236,7 @@ export function SemanticContains(
 
 let _aiDeps: Promise<[typeof import("ai"), typeof import("zod")]> | undefined
 
-function loadAiDeps(): Promise<
-  [typeof import("ai"), typeof import("zod")]
-> {
+function loadAiDeps(): Promise<[typeof import("ai"), typeof import("zod")]> {
   if (!_aiDeps) {
     _aiDeps = Promise.all([import("ai"), import("zod")])
   }

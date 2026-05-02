@@ -23,13 +23,13 @@ describe("parseCliArgs", () => {
   })
 
   test("supports boolean assignment syntax for eval flags", () => {
-    expect(parseCliArgs(["interactive", "--json=no", "--verbose=true"])).toEqual(
-      {
-        command: "select",
-        bunArgs: [],
-        verboseReporting: true,
-        jsonOutput: false,
-      },
-    )
+    expect(
+      parseCliArgs(["interactive", "--json=no", "--verbose=true"]),
+    ).toEqual({
+      command: "select",
+      bunArgs: [],
+      verboseReporting: true,
+      jsonOutput: false,
+    })
   })
 })

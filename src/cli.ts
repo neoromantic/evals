@@ -27,10 +27,7 @@ function parseBooleanFlagValue(rawValue: string | undefined): boolean {
   )
 }
 
-function parseValueFlag(
-  arg: string,
-  flags: Set<string>,
-): string | undefined {
+function parseValueFlag(arg: string, flags: Set<string>): string | undefined {
   const eqIndex = arg.indexOf("=")
   if (eqIndex <= 0) return undefined
   const flag = arg.slice(0, eqIndex)

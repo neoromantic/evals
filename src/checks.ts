@@ -31,9 +31,7 @@ function getDefaultJudgeModel(): LanguageModel {
   }
 
   if (process.env.OPENAI_API_KEY) {
-    return createOpenAI({ apiKey: process.env.OPENAI_API_KEY })(
-      "gpt-4o-mini",
-    )
+    return createOpenAI({ apiKey: process.env.OPENAI_API_KEY })("gpt-4o-mini")
   }
 
   throw new Error(

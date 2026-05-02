@@ -1,6 +1,6 @@
 import { basename } from "node:path"
 import { getBaselinePath, loadBaseline } from "./baseline"
-import type { BaselineFile, BaselineMetric, BaselineSuiteData } from "./types"
+import type { BaselineFile, BaselineMetric } from "./types"
 
 export interface TokenEstimate {
   input: number | null
@@ -43,7 +43,9 @@ export interface EstimateSummary {
 
 type AggregateRecord = Record<string, BaselineMetric | number>
 
-function metricValue(metric: BaselineMetric | number | undefined): number | null {
+function metricValue(
+  metric: BaselineMetric | number | undefined,
+): number | null {
   if (typeof metric === "number") {
     return Number.isFinite(metric) ? metric : null
   }
@@ -162,7 +164,11 @@ function buildSuiteEstimates(
   }
 
   return [
-    buildSuiteEstimate(basename(evalFile), basename(evalFile), baseline._aggregate),
+    buildSuiteEstimate(
+      basename(evalFile),
+      basename(evalFile),
+      baseline._aggregate,
+    ),
   ]
 }
 

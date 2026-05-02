@@ -1,14 +1,14 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { spawnSync } from "node:child_process"
-import { join } from "node:path"
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
+import { join } from "node:path"
 import { parseReleaseArgs } from "./release-args"
 import {
   bumpVersion,
+  type CommitEntry,
   inferVersionBump,
   mergeChangelog,
   parseReleaseHeading,
-  type CommitEntry,
   type VersionBump,
 } from "./release-lib"
 
@@ -128,7 +128,10 @@ async function main() {
 
   packageJson.version = nextVersion
   writeJsonFile(packageJsonPath, packageJson)
-  writeFileSync(changelogPath, mergeChangelog(changelog, draft.changelogSection))
+  writeFileSync(
+    changelogPath,
+    mergeChangelog(changelog, draft.changelogSection),
+  )
 
   if (draft.readmeAction === "replace" && draft.readmeContent.trim()) {
     writeFileSync(readmePath, ensureTrailingNewline(draft.readmeContent))
@@ -182,7 +185,9 @@ function fetchTags() {
   })
 
   if (proc.status !== 0) {
-    console.warn("Warning: could not refresh tags from origin; continuing with local refs.")
+    console.warn(
+      "Warning: could not refresh tags from origin; continuing with local refs.",
+    )
   }
 }
 
@@ -191,10 +196,20 @@ function findReleaseAnchor(fromRef?: string): ReleaseAnchor {
     return { ref: fromRef, version: null, source: "commit" }
   }
 
-  const latestTag = gitOptional(["describe", "--tags", "--abbrev=0", "--match", "v*"])
+  const latestTag = gitOptional([
+    "describe",
+    "--tags",
+    "--abbrev=0",
+    "--match",
+    "v*",
+  ])
 
   if (latestTag) {
-    return { ref: latestTag, version: latestTag.replace(/^v/, ""), source: "tag" }
+    return {
+      ref: latestTag,
+      version: latestTag.replace(/^v/, ""),
+      source: "tag",
+    }
   }
 
   const log = gitOptional(["log", "--format=%H%x00%s", "-n", "200"])
@@ -220,7 +235,11 @@ function findReleaseAnchor(fromRef?: string): ReleaseAnchor {
     }
   }
 
-  return { ref: git(["rev-list", "--max-parents=0", "HEAD"]).split("\n")[0], version: null, source: "root" }
+  return {
+    ref: git(["rev-list", "--max-parents=0", "HEAD"]).split("\n")[0],
+    version: null,
+    source: "root",
+  }
 }
 
 function getCommitsSince(ref: string): CommitEntry[] {
@@ -493,14 +512,18 @@ async function runCodex(prompt: string, schema: object): Promise<any> {
     })
 
     if (proc.error?.name === "TimeoutError" || proc.signal) {
-      throw new Error(`Codex release draft timed out or was terminated (${proc.signal ?? "timeout"})`)
+      throw new Error(
+        `Codex release draft timed out or was terminated (${proc.signal ?? "timeout"})`,
+      )
     }
 
     if (proc.status !== 0) {
       throw new Error(`Codex exited with code ${proc.status}`)
     }
 
-    return validateReleasePlan(parseJsonPayload(readFileSync(outputPath, "utf8")))
+    return validateReleasePlan(
+      parseJsonPayload(readFileSync(outputPath, "utf8")),
+    )
   } finally {
     rmSync(tempDir, { recursive: true, force: true })
   }
@@ -537,7 +560,9 @@ async function runClaude(prompt: string, schema: object): Promise<any> {
     })
 
     if (proc.error?.name === "TimeoutError" || proc.signal) {
-      throw new Error(`Claude release draft timed out or was terminated (${proc.signal ?? "timeout"})`)
+      throw new Error(
+        `Claude release draft timed out or was terminated (${proc.signal ?? "timeout"})`,
+      )
     }
 
     if (proc.status !== 0) {
@@ -568,7 +593,9 @@ async function runCustomCommand(prompt: string): Promise<any> {
   })
 
   if (proc.error?.name === "TimeoutError" || proc.signal) {
-    throw new Error(`Custom LLM command timed out or was terminated (${proc.signal ?? "timeout"})`)
+    throw new Error(
+      `Custom LLM command timed out or was terminated (${proc.signal ?? "timeout"})`,
+    )
   }
 
   if (proc.status !== 0) {
@@ -607,7 +634,10 @@ function parseClaudeJsonPayload(raw: string): any {
   const payload = parseJsonPayload(raw)
 
   if (payload && typeof payload === "object") {
-    if (payload.structured_output && typeof payload.structured_output === "object") {
+    if (
+      payload.structured_output &&
+      typeof payload.structured_output === "object"
+    ) {
       return payload.structured_output
     }
 
@@ -637,7 +667,9 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
     typeof value.readmeSummary !== "string" ||
     typeof value.tweetText !== "string"
   ) {
-    throw new Error(`Invalid release draft payload: ${JSON.stringify(value, null, 2)}`)
+    throw new Error(
+      `Invalid release draft payload: ${JSON.stringify(value, null, 2)}`,
+    )
   }
 
   const tweetText = value.tweetText.trim()
@@ -648,7 +680,9 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
   }
 
   if (tweetText.length > 280) {
-    throw new Error(`Release draft tweetText exceeds 280 characters (${tweetText.length})`)
+    throw new Error(
+      `Release draft tweetText exceeds 280 characters (${tweetText.length})`,
+    )
   }
 
   if (!tweetText.includes(npmLink)) {
@@ -666,8 +700,14 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
 }
 
 function validateReadmeRewrite(value: any): string {
-  if (!value || typeof value.readmeContent !== "string" || !value.readmeContent.trim()) {
-    throw new Error(`Invalid README rewrite payload: ${JSON.stringify(value, null, 2)}`)
+  if (
+    !value ||
+    typeof value.readmeContent !== "string" ||
+    !value.readmeContent.trim()
+  ) {
+    throw new Error(
+      `Invalid README rewrite payload: ${JSON.stringify(value, null, 2)}`,
+    )
   }
 
   return ensureTrailingNewline(value.readmeContent.trim())
@@ -682,7 +722,9 @@ function printPlan(input: {
   dryRun: boolean
   draft: ReleaseDraft
 }) {
-  console.log(`${input.dryRun ? "Dry run" : "Preparing release"} ${input.tagName}`)
+  console.log(
+    `${input.dryRun ? "Dry run" : "Preparing release"} ${input.tagName}`,
+  )
   console.log(`Current version: ${input.currentVersion}`)
   console.log(`Bump: ${input.bump}`)
   console.log(
@@ -700,7 +742,11 @@ function printPlan(input: {
   }
 
   console.log("")
-  console.log("README action:", input.draft.readmeAction, `(${input.draft.readmeSummary})`)
+  console.log(
+    "README action:",
+    input.draft.readmeAction,
+    `(${input.draft.readmeSummary})`,
+  )
   console.log("")
   console.log(input.draft.changelogSection.trim())
   console.log("")
@@ -762,7 +808,7 @@ function ensureTrailingNewline(value: string): string {
 
 function getLlmTimeoutMs(): number {
   const raw = process.env.GOODIT_RELEASE_LLM_TIMEOUT_MS?.trim()
-  const parsed = raw ? Number(raw) : NaN
+  const parsed = raw ? Number(raw) : Number.NaN
 
   if (Number.isFinite(parsed) && parsed > 0) {
     return parsed
@@ -793,9 +839,14 @@ function maybePostTweet(text: string) {
     }
 
     if (status.status !== 0) {
-      console.warn("Warning: twitter status check failed; skipping release tweet.")
+      console.warn(
+        "Warning: twitter status check failed; skipping release tweet.",
+      )
 
-      const details = [status.stdout, status.stderr].filter(Boolean).join("\n").trim()
+      const details = [status.stdout, status.stderr]
+        .filter(Boolean)
+        .join("\n")
+        .trim()
 
       if (details) {
         console.warn(details)
@@ -806,7 +857,9 @@ function maybePostTweet(text: string) {
     const auth = tryParseJson(status.stdout ?? "")
 
     if (!auth?.ok || auth?.data?.authenticated !== true) {
-      console.warn("Warning: twitter CLI is not authenticated; skipping release tweet.")
+      console.warn(
+        "Warning: twitter CLI is not authenticated; skipping release tweet.",
+      )
       return
     }
 
@@ -818,7 +871,9 @@ function maybePostTweet(text: string) {
     })
 
     if (post.error?.code === "ENOENT") {
-      console.warn("Warning: twitter CLI disappeared before posting; skipping release tweet.")
+      console.warn(
+        "Warning: twitter CLI disappeared before posting; skipping release tweet.",
+      )
       return
     }
 
@@ -832,7 +887,10 @@ function maybePostTweet(text: string) {
     if (post.status !== 0) {
       console.warn("Warning: twitter post failed; release will continue.")
 
-      const details = [post.stdout, post.stderr].filter(Boolean).join("\n").trim()
+      const details = [post.stdout, post.stderr]
+        .filter(Boolean)
+        .join("\n")
+        .trim()
       const parsed = tryParseJson(post.stdout ?? "")
       const errorCode = parsed?.error?.details?.code ?? parsed?.error?.code
       const errorMessage = parsed?.error?.message
@@ -856,13 +914,17 @@ function maybePostTweet(text: string) {
       auth?.data?.user?.username
 
     if (tweetId && screenName) {
-      console.log(`Release tweet posted: https://x.com/${screenName}/status/${tweetId}`)
+      console.log(
+        `Release tweet posted: https://x.com/${screenName}/status/${tweetId}`,
+      )
       return
     }
 
     console.log("Release tweet posted.")
   } catch (error) {
-    console.warn("Warning: unexpected twitter post error; release will continue.")
+    console.warn(
+      "Warning: unexpected twitter post error; release will continue.",
+    )
     console.warn(error instanceof Error ? error.message : String(error))
     return
   }

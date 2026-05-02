@@ -6,7 +6,8 @@ export interface CommitEntry {
   body: string
 }
 
-const RELEASE_HEADING_RE = /^##\s+([0-9]+\.[0-9]+\.[0-9]+)\s+-\s+([0-9]{4}-[0-9]{2}-[0-9]{2})$/m
+const RELEASE_HEADING_RE =
+  /^##\s+([0-9]+\.[0-9]+\.[0-9]+)\s+-\s+([0-9]{4}-[0-9]{2}-[0-9]{2})$/m
 
 export function inferVersionBump(commits: CommitEntry[]): VersionBump {
   let bump: VersionBump = "patch"
@@ -14,7 +15,10 @@ export function inferVersionBump(commits: CommitEntry[]): VersionBump {
   for (const commit of commits) {
     const message = `${commit.subject}\n${commit.body}`.trim()
 
-    if (/\bBREAKING CHANGE\b/i.test(message) || /^[^:\n!]+!:/m.test(commit.subject)) {
+    if (
+      /\bBREAKING CHANGE\b/i.test(message) ||
+      /^[^:\n!]+!:/m.test(commit.subject)
+    ) {
       return "major"
     }
 
@@ -67,7 +71,10 @@ export function mergeChangelog(existing: string, section: string): string {
   return `${prefix}${normalizedSection}\n\n${remainder}\n`
 }
 
-export function extractChangelogSection(content: string, version: string): string | null {
+export function extractChangelogSection(
+  content: string,
+  version: string,
+): string | null {
   const lines = content.split(/\r?\n/)
   const heading = `## ${version} - `
   const start = lines.findIndex((line) => line.startsWith(heading))
@@ -88,11 +95,16 @@ export function extractChangelogSection(content: string, version: string): strin
   return lines.slice(start, end).join("\n").trim()
 }
 
-export function parseReleaseHeading(section: string): { version: string; date: string } {
+export function parseReleaseHeading(section: string): {
+  version: string
+  date: string
+} {
   const match = section.trim().match(RELEASE_HEADING_RE)
 
   if (!match) {
-    throw new Error("Release section must start with `## <version> - <YYYY-MM-DD>`")
+    throw new Error(
+      "Release section must start with `## <version> - <YYYY-MM-DD>`",
+    )
   }
 
   return { version: match[1], date: match[2] }
