@@ -1,5 +1,22 @@
 # Changelog
 
+All notable changes to this package are documented in this file.
+
+## 0.8.0 - 2026-03-17
+
+**Features**
+
+- `Facts([...])` checks: put a list of facts in `expected` and leave out `scorers`. Each fact is judged by an LLM (`gpt-4o-mini` through `AI_GATEWAY_API_KEY` or `OPENAI_API_KEY`, or the `model` you pass), and the case gets one `score.checks` metric.
+- `scorers` is optional in `evalSuite` when every case uses `Facts()`.
+- Scorers for a case now run in parallel.
+- The report has a per-test `RESULTS` section with each case's scorers.
+- `--filter <text>` (or `--eval-filter`) narrows the discovered eval files by a case-insensitive substring.
+
+**Changes**
+
+- `@ai-sdk/openai` is now a dependency, for the default `Facts()` judge model.
+- Internal refactors across the CLI, selector, baseline, estimates and reporter code.
+
 ## 0.7.1 - 2026-03-12
 
 **Fixes**
@@ -23,8 +40,6 @@
 - Removed unreachable dead code and unused helper functions
 - Simplified reporter iteration by directly accessing comparison values
 - Streamlined command-set checking in argument parsing
-
-All notable changes to this package are documented in this file.
 
 ## 0.6.0 - 2026-03-10
 
