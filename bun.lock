@@ -16,15 +16,12 @@
         "autoevals": "^0.0.132",
         "ink-testing-library": "^4.0.0",
         "typescript": "^5.9.3",
+        "zod": "^4.3.6",
       },
       "peerDependencies": {
         "ai": ">=6",
-        "zod": ">=3",
+        "zod": "^3.25.76 || ^4.1.8",
       },
-      "optionalPeers": [
-        "ai",
-        "zod",
-      ],
     },
   },
   "packages": {
