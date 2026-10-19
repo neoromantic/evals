@@ -66,6 +66,19 @@ describe("mergeChangelog", () => {
   })
 })
 
+describe("mergeChangelog with a preamble", () => {
+  test("keeps the preamble above the new section", () => {
+    const merged = mergeChangelog(
+      "# Changelog\n\nAll notable changes.\n\n## 0.6.0 - 2026-03-10\n\nExisting release.\n",
+      "## 0.7.0 - 2026-03-12\n\nNew release.\n",
+    )
+
+    expect(merged).toBe(
+      "# Changelog\n\nAll notable changes.\n\n## 0.7.0 - 2026-03-12\n\nNew release.\n\n## 0.6.0 - 2026-03-10\n\nExisting release.\n",
+    )
+  })
+})
+
 describe("extractChangelogSection", () => {
   test("returns a single release entry", () => {
     expect(

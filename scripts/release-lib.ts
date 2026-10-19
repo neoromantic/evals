@@ -64,9 +64,14 @@ export function mergeChangelog(existing: string, section: string): string {
     return `# Changelog\n\n${normalizedSection}\n`
   }
 
-  const headerMatch = normalizedExisting.match(/^# Changelog\s*\n\n?/)
-  const prefix = headerMatch?.[0] ?? "# Changelog\n\n"
-  const remainder = normalizedExisting.slice(prefix.length).trimStart()
+  // Insert above the newest release, below the title and any preamble.
+  const firstSection = normalizedExisting.search(/^## /m)
+  if (firstSection === -1) {
+    return `${normalizedExisting}\n\n${normalizedSection}\n`
+  }
+
+  const prefix = normalizedExisting.slice(0, firstSection)
+  const remainder = normalizedExisting.slice(firstSection)
 
   return `${prefix}${normalizedSection}\n\n${remainder}\n`
 }
