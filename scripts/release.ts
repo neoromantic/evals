@@ -150,7 +150,7 @@ async function main() {
     git(["push", "origin", "main"])
     git(["push", "origin", tagName])
     if (options.skipTweet) {
-      console.log("Skipping release tweet (--skip-tweet).")
+      console.log("Skipping release tweet (pass --tweet to post one).")
     } else {
       maybePostTweet(draft.tweetText)
     }

@@ -22,6 +22,11 @@ describe("parseReleaseArgs", () => {
     })
   })
 
+  test("skips the release tweet unless --tweet is passed", () => {
+    expect(parseReleaseArgs([]).skipTweet).toBe(true)
+    expect(parseReleaseArgs(["--tweet"]).skipTweet).toBe(false)
+  })
+
   test("rejects unknown flags", () => {
     expect(() => parseReleaseArgs(["--nope"])).toThrow(
       "Unknown argument: --nope",

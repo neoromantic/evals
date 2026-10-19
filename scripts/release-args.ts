@@ -12,7 +12,8 @@ export function parseReleaseArgs(argv: string[]): ReleaseOptions {
   const options: ReleaseOptions = {
     dryRun: false,
     skipPush: false,
-    skipTweet: false,
+    // evals is in maintenance mode: no release tweet unless --tweet is passed.
+    skipTweet: true,
   }
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -27,6 +28,9 @@ export function parseReleaseArgs(argv: string[]): ReleaseOptions {
         break
       case "--skip-tweet":
         options.skipTweet = true
+        break
+      case "--tweet":
+        options.skipTweet = false
         break
       case "--bump":
         index += 1
