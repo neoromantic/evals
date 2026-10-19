@@ -1,0 +1,38 @@
+# managed by devkit v1: edit in https://github.com/neoromantic/devkit/blob/main/templates/ci.bun.yml
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    uses: neoromantic/devkit/.github/workflows/ci-bun.yml@v1
+    permissions:
+      contents: read
+    with:
+      e2e: true
+
+  hygiene:
+    uses: neoromantic/devkit/.github/workflows/hygiene.yml@v1
+    permissions:
+      contents: read
+
+  # The one required check for the branch ruleset. It is named exactly "ci".
+  ci:
+    needs: [build, hygiene]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: All jobs passed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
