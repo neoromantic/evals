@@ -14,22 +14,22 @@ describe("detectEvalFileFromStack", () => {
   test("detects .eval.ts paths from stack lines", () => {
     const stack = [
       "Error",
-      "  at suite (/Users/tester/evals/basic.eval.ts:12:34)",
+      "  at suite (/home/tester/evals/basic.eval.ts:12:34)",
     ].join("\n")
 
     expect(detectEvalFileFromStack(stack)).toBe(
-      "/Users/tester/evals/basic.eval.ts",
+      "/home/tester/evals/basic.eval.ts",
     )
   })
 
   test("detects .eval.js paths from stack lines", () => {
     const stack = [
       "Error",
-      "  at Object.<anonymous> (file:///Users/tester/evals/basic.eval.js:7:9)",
+      "  at Object.<anonymous> (file:///home/tester/evals/basic.eval.js:7:9)",
     ].join("\n")
 
     expect(detectEvalFileFromStack(stack)).toBe(
-      "/Users/tester/evals/basic.eval.js",
+      "/home/tester/evals/basic.eval.js",
     )
   })
 })
