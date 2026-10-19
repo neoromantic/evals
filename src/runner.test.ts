@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { buildBunTestArgs, discoverEvalFiles, loadDotenvEnv } from "./runner"
@@ -72,4 +78,48 @@ describe("loadDotenvEnv", () => {
       rmSync(tempDir, { recursive: true, force: true })
     }
   })
+})
+
+describe("--json output", () => {
+  test("prints the whole report when stdout is a pipe", async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-json-pipe-"))
+    const indexPath = resolve(import.meta.dir, "index.ts")
+    const runPath = resolve(import.meta.dir, "run.ts")
+
+    try {
+      writeFileSync(
+        join(tempDir, "big.eval.ts"),
+        [
+          `import { ExactMatch, evalSuite } from ${JSON.stringify(indexPath)}`,
+          "",
+          'evalSuite("big report", {',
+          "  data: () =>",
+          "    Array.from({ length: 200 }, (_, i) => ({",
+          '      input: `case-${i}-${"x".repeat(200)}`,',
+          '      expected: `case-${i}-${"x".repeat(200)}`,',
+          "    })),",
+          "  task: async (input: string) => input,",
+          "  scorers: [ExactMatch],",
+          "})",
+          "",
+        ].join("\n"),
+      )
+
+      // A shell pipe reproduces the truncation; Bun.spawn's own pipe drains
+      // too fast to hit it.
+      const outPath = join(tempDir, "out.json")
+      const proc = Bun.spawn(
+        ["sh", "-c", 'bun "$0" --json 2>/dev/null | cat > "$1"', runPath, outPath],
+        { cwd: tempDir, env: process.env, stdin: "ignore" },
+      )
+      await proc.exited
+      const stdout = readFileSync(outPath, "utf-8")
+
+      expect(stdout.length).toBeGreaterThan(64 * 1024)
+      const payload = JSON.parse(stdout) as { summary: { suiteCount: number } }
+      expect(payload.summary.suiteCount).toBe(1)
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true })
+    }
+  }, 30000)
 })

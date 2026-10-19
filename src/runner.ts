@@ -1,4 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { join, relative, resolve } from "node:path"
 import { Glob } from "bun"
@@ -12,6 +18,22 @@ export interface RunEvalFilesOptions {
   bunArgs: string[]
   verboseReporting: boolean
   jsonOutput: boolean
+}
+
+// Write all of `text` to stdout before returning. When stdout is a pipe,
+// console.log and Bun.write can stop after 64 KiB (or repeat the first
+// chunk) once the process exits, which broke `--json | jq` on big reports.
+function writeStdoutSync(text: string): void {
+  const buffer = Buffer.from(text)
+  let offset = 0
+  while (offset < buffer.length) {
+    try {
+      offset += writeSync(1, buffer, offset)
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EAGAIN") throw error
+      Bun.sleepSync(1)
+    }
+  }
 }
 
 function parseVersion(version: string): [number, number, number] {
@@ -272,7 +294,7 @@ export async function runEvalFiles(
 
     payload = appendFailureDetails(payload, exitCode, bunStdout, bunStderr)
 
-    console.log(JSON.stringify(payload, null, 2))
+    writeStdoutSync(`${JSON.stringify(payload, null, 2)}\n`)
     return exitCode
   } finally {
     if (jsonOutputDir) {
