@@ -2,6 +2,16 @@
 
 All notable changes to this package are documented in this file.
 
+## 0.8.1 - 2026-10-19
+
+- Fix truncated or repeated `--json` output when piping reports larger than 64 KiB on Bun 1.4.
+- Fix verbose score alignment for long scorer names with the `[judge]` badge.
+- Declare `ai` and `zod` as required peer dependencies and align the `zod` range with `ai` 6.
+- Validate the release tag against `package.json` and extract changelog notes before publishing. Reruns skip versions already on npm and preserve existing GitHub Releases.
+- Make release tweets opt-in with `--tweet`.
+- Restore the missing 0.8.0 changelog section and insert new sections below the preamble.
+- Refresh the README with existing 0.8.0 features, required peer installation instructions, synthetic screenshots, and maintenance-mode guidance. Move release workflow documentation to `docs/releasing.md`.
+
 ## 0.8.0 - 2026-03-17
 
 **Features**
