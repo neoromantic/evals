@@ -135,7 +135,7 @@ describe("duplicate test names integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "duplicate-names.eval.ts")
     const outputPath = join(tempDir, "eval-output.json")
 
@@ -190,7 +190,7 @@ describe("custom test names integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "custom-names.eval.ts")
     const outputPath = join(tempDir, "eval-output.json")
 
@@ -297,7 +297,7 @@ describe("suite identity collision integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalAPath = join(tempDir, "a.eval.ts")
     const evalBPath = join(tempDir, "b.eval.ts")
     const outputPath = join(tempDir, "eval-output.json")
@@ -379,7 +379,7 @@ describe("multi-suite baseline integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "multi-suite.eval.ts")
     const outputPath = join(tempDir, "eval-output.json")
 
@@ -486,7 +486,7 @@ describe("json output integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "json-output.eval.ts")
     const jsonOutputPath = join(tempDir, "eval-report.json")
 

@@ -51,7 +51,7 @@ describe("evalSuite async data integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "rejecting-data.eval.ts")
 
     try {
@@ -99,7 +99,7 @@ describe("evalSuite async data integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "hanging-data.eval.ts")
 
     try {
@@ -143,7 +143,7 @@ describe("evalSuite async data integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "parallel-async-cases.eval.ts")
     const tracePath = join(tempDir, "parallel-trace.json")
 
@@ -200,8 +200,11 @@ describe("evalSuite async data integration", () => {
       }
 
       expect(run.exitCode).toBe(0)
-      expect(output).toContain("parallel async suite")
-      expect(output).toContain("evaluate all")
+      expect(output).toContain("parallel async suite (3 tests")
+      // All async-data cases run inside one Bun test ("evaluate all"). Bun hides
+      // passing test names in agent shells (CLAUDECODE=1 and similar), so check
+      // the summary line instead of the test name.
+      expect(output).toContain("Ran 1 test across 1 file")
       expect(trace.maxActiveTasks).toBeGreaterThan(1)
     } finally {
       rmSync(tempDir, { recursive: true, force: true })
@@ -212,7 +215,7 @@ describe("evalSuite async data integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "parallel-deterministic.eval.ts")
     const outputPath = join(tempDir, "parallel-output.json")
 
@@ -295,7 +298,7 @@ describe("evalSuite sync data integration", () => {
     const root = resolve(import.meta.dir, "../../..")
     const preloadPath = resolve(import.meta.dir, "preload.ts")
     const indexPath = resolve(import.meta.dir, "index.ts")
-    const tempDir = mkdtempSync(join(tmpdir(), "jupid-evals-"))
+    const tempDir = mkdtempSync(join(tmpdir(), "evals-"))
     const evalPath = join(tempDir, "parallel-sync-cases.eval.ts")
     const tracePath = join(tempDir, "parallel-sync-trace.json")
 
