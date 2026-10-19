@@ -1,5 +1,7 @@
 # AGENTS.md
 
+evals is in maintenance mode: bug fixes and dependency updates only, no new features, no promotion. Don't change the default `Facts()` judge model.
+
 ## Repo Workflows
 
 - Runtime requirement: Bun `>=1.3.9` (see `README.md` and `src/run.ts`).
@@ -51,8 +53,8 @@
   - Prepares changelog/docs, validates, commits, tags, and pushes a release from a clean `main` checkout.
 - `bun run release -- --skip-push`
   - Prepares changelog/docs, validates, commits, and tags a release without pushing `main` or the tag.
-- `bun run release -- --skip-tweet`
-  - Prepares, validates, commits, tags, and pushes a release without posting to X/Twitter.
+- `bun run release -- --tweet`
+  - Same as `bun run release`, and also posts a release tweet (off by default). Release details: `docs/releasing.md`.
 
 ## CLI Entrypoint
 
@@ -60,7 +62,3 @@
 - `goodit-evals run` is an explicit alias for the default eval run flow.
 - `goodit-evals select` opens the interactive selector flow from the published CLI.
 - `goodit-evals interactive` is an alias for `goodit-evals select`.
-
-## TODO
-
-- `README.md` references `bun run lint`, but `package.json` currently has no `lint` script.
