@@ -116,6 +116,21 @@ describe("reporter verbose scorer diagnostics", () => {
   })
 })
 
+describe("reporter judge badge", () => {
+  test("keeps a space between a long judge scorer name and its status", () => {
+    const test = createVerboseTest("judged", [0])
+    test.scorerResults = [{ name: "PolicyMention", score: 0, kind: "judge" }]
+
+    const output = stripAnsi(
+      captureLogs(() =>
+        printSuiteReport(createReport([test]), undefined, { verbose: true }),
+      ),
+    )
+
+    expect(output).toContain("PolicyMention [judge]  0.00  FAIL")
+  })
+})
+
 describe("reporter variant comparison tables", () => {
   test("prints comparison table for variant suites", () => {
     const reports: SuiteReport[] = [

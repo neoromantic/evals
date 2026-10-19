@@ -325,7 +325,10 @@ function printVerboseScorerDetails(report: SuiteReport): void {
 
   const scorerNameWidth = Math.max(
     ...verboseTests.flatMap((test) =>
-      test.scorerResults.map((scorerResult) => scorerResult.name.length),
+      test.scorerResults.map(
+        (scorerResult) =>
+          scorerResult.name.length + (scorerResult.kind === "judge" ? 8 : 0),
+      ),
     ),
     12,
   )
