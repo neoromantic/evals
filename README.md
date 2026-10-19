@@ -1,32 +1,44 @@
 # @goodit/evals
 
-Pragmatic eval framework for LLM features.
+Pragmatic eval framework for LLM features. Runs eval files as Bun tests with scorers, baselines, and reporting.
+
+[![ci](https://github.com/neoromantic/evals/actions/workflows/ci.yml/badge.svg)](https://github.com/neoromantic/evals/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@goodit/evals)](https://www.npmjs.com/package/@goodit/evals)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
 It runs eval files as Bun tests, records scorer metrics and token/latency data,
 compares results against baselines, and prints a report that is useful during
 iteration.
 
+> **Maintenance mode.** evals gets bug fixes and dependency updates, but no new
+> features are planned. Issues and small pull requests are welcome.
+
 ## Installation
 
 ```bash
 # bun
-bun add @goodit/evals
+bun add -d @goodit/evals ai zod
 
 # npm
-npm install @goodit/evals
+npm install -D @goodit/evals ai zod
 
 # pnpm
-pnpm add @goodit/evals
+pnpm add -D @goodit/evals ai zod
 ```
 
 Requires Bun `>= 1.3.9` as the test runner.
 
-Optional peer dependencies: `ai >= 6` (for `traceModel()` and semantic scorers), `zod >= 3` (for semantic scorers).
+Peer dependencies: `ai >= 6` and `zod` (`^3.25.76` or `^4.1.8`). Both are
+required: the package entry loads them for `Facts()`, `traceModel()` and the
+semantic scorers.
 
 ## What this package gives you
 
 - Declarative eval API (`evalSuite`) for multi-case checks.
-- Built-in and custom scorers.
+- Built-in and custom scorers, run in parallel for each case.
+- `Facts([...])` checks: list facts in `expected` and let an LLM judge them, no
+  scorer code needed.
+- A per-test `RESULTS` section in the report, plus suite aggregates.
 - LLM tracing via `traceModel()` for token metrics.
 - Baseline files (`*.eval.baseline.json`) with regression comparison.
 - Verbose diagnostics mode for low/failing scorer details.
@@ -42,6 +54,9 @@ bun run eval
 # choose eval files interactively in the terminal
 # shows baseline-based wall/work/token estimates when available
 bun run eval:select
+
+# run only eval files whose path contains a substring
+bun run eval -- --filter briefing
 
 # run only tests whose name matches a regex
 bun run eval -- --test-name-pattern "Country Briefings"
@@ -61,9 +76,9 @@ bun run eval:update
 
 ## CLI Screenshots
 
-The demo fixtures below are intentionally a little less sterile than `foo` and
-`bar`, so Sam Altman, Demis Hassabis, Andrej Karpathy, Dario Amodei, and
-Fei-Fei Li make cameo appearances in the terminal.
+The screenshots come from a small made-up demo: a support-reply drafter for an
+imaginary bike shop and a docs search with three retrieval variants. The model
+calls are simulated, so the numbers are invented too.
 
 ### Interactive selector
 
@@ -90,8 +105,8 @@ highlighted file.
 </p>
 
 `bun run eval` prints the suite summary you actually want during iteration:
-scores, pass rate, latency, tokens, and baseline regression markers in one
-place.
+per-test results, then scores, pass rate, latency, tokens, and baseline
+regression markers in one place.
 
 ### Verbose scorer diagnostics
 
@@ -117,7 +132,7 @@ including scorer metadata and the missing pieces that caused the failure.
 </p>
 
 `evalSuite.each(...)` gets a dedicated comparison table so you can see, at a
-glance, whether `founder-mode`, `research-mode`, or `taste-mode` deserves the
+glance, whether `keyword`, `hybrid`, or `rerank` retrieval deserves the
 budget.
 
 ### JSON mode
@@ -131,7 +146,8 @@ budget.
 </p>
 
 `bun run eval -- --json` emits structured output for agents, CI, and other
-tooling without the human report wrapped around it.
+tooling without the human report wrapped around it. The full report is large;
+the screenshot shows a `jq` projection of it.
 
 ## Runner Behavior
 
@@ -230,7 +246,7 @@ evalSuite(name: string, config: {
     | (() => EvalData<TInput, TExpected>[]
       | Promise<EvalData<TInput, TExpected>[]>)
   task: (input: TInput) => Promise<TOutput>
-  scorers: Scorer<TInput, TOutput, TExpected>[]
+  scorers?: Scorer<TInput, TOutput, TExpected>[] // optional when expected is Facts()
   passThreshold?: number // default 0.5
   aggregations?: Record<string, (entries: AggregationEntry[]) => number>
   timeout?: number // per-case timeout, default 30000ms
@@ -257,6 +273,36 @@ Execution model:
 - `data: async () => []`
   - Registers one Bun test named `evaluate all`.
   - Cases run in parallel internally.
+
+### `Facts(facts, opts?)`
+
+Describe what a good answer says, and let an LLM judge each fact against the
+output. Leave out `scorers`:
+
+```ts
+import { evalSuite, Facts } from "@goodit/evals"
+
+evalSuite("Refund replies", {
+  data: () => [
+    {
+      input: "How long does a refund take?",
+      expected: Facts([
+        "Says refunds take up to 5 business days",
+        "Does not promise an instant refund",
+      ]),
+    },
+  ],
+  task: async (input: string) => draftReply(input),
+})
+```
+
+- Each fact gets a 0..1 score from the judge model; the case records their
+  average as `score.checks`.
+- The default judge is `gpt-4o-mini`, through Vercel AI Gateway when
+  `AI_GATEWAY_API_KEY` is set, otherwise OpenAI with `OPENAI_API_KEY`. Pass
+  `Facts([...], { model })` to use any AI SDK model.
+- Judge calls are scorer calls, so their tokens and latency land in
+  `tokens.scorer.*` and `latency.scoring`.
 
 ### `evalSuite.each(variants)(name, config)`
 
@@ -504,10 +550,15 @@ This separation happens automatically — no code changes needed.
 - `--eval-verbose`
 - `--json`
 - `--eval-json`
+- `--filter <text>`
+- `--eval-filter <text>`
 
 `--verbose` and `--eval-verbose` enable scorer diagnostics
 (same as `EVAL_VERBOSE=1`).
 `--json` and `--eval-json` print only structured JSON output (no human report).
+`--filter` and `--eval-filter` keep only eval files whose path contains the
+text (case-insensitive), before running or opening the selector.
+Boolean flags also accept `--flag=value`, e.g. `--json=no`.
 
 ### Bun test flags (pass-through)
 
@@ -656,96 +707,38 @@ bun run eval:update  # run and update baselines
 bun run test         # unit/integration tests for framework
 bun run typecheck
 bun run build
-bun run release -- --dry-run
 ```
 
-## Release Workflow
-
-Use the local release command as the single entrypoint:
-
-```bash
-# preview the next release without changing files
-bun run release -- --dry-run
-
-# prepare changelog + docs, run validation, commit, tag, and push
-bun run release
-
-# prepare and push a release without posting to X/Twitter
-bun run release -- --skip-tweet
-```
-
-What `bun run release` does:
-
-1. Requires a clean `main` branch checkout.
-2. Finds commits since the latest `v*` tag, or the latest release-style commit
-   if tags have not been backfilled yet.
-3. Infers the semver bump from commit messages:
-   - `feat:` -> minor
-   - `fix:`/`docs:`/`chore:` and similar -> patch
-   - `!:` or `BREAKING CHANGE` -> major
-4. Uses an LLM to draft the next `CHANGELOG.md` entry and optionally refresh
-   `README.md`.
-5. Runs `typecheck`, `test`, `build`, and `npm pack --dry-run`.
-6. Commits `package.json`, `CHANGELOG.md`, and `README.md` as
-   `release: vX.Y.Z`.
-7. Creates tag `vX.Y.Z` and pushes `main` plus the tag.
-8. Uses the LLM release draft to generate a short release tweet, then attempts
-   to post it via `twitter post "TEXT"` unless `--skip-tweet` is passed. If the
-   `twitter` CLI is unavailable or errors, the release still succeeds silently.
-
-The publish step happens in GitHub Actions on tag push. Configure:
-
-- npm trusted publishing for repo `neoromantic/evals` and workflow
-  `.github/workflows/publish.yml`
-- `GOODIT_RELEASE_LLM_PROVIDER` locally as `codex`, `claude`, or `command`
-- Optional `GOODIT_RELEASE_LLM_MODEL` locally to pin a non-default model
-- `GOODIT_RELEASE_LLM_COMMAND` locally if using `GOODIT_RELEASE_LLM_PROVIDER=command`
-
-This workflow uses GitHub OIDC trusted publishing, so `NPM_TOKEN` is not
-required in GitHub secrets.
-
-If `v0.6.0` has already been published without a matching git tag, create that
-tag once before the first automated release so future changelog ranges are
-correct.
-
-Examples:
-
-```bash
-# use Codex CLI
-export GOODIT_RELEASE_LLM_PROVIDER=codex
-
-# use Claude Code CLI
-export GOODIT_RELEASE_LLM_PROVIDER=claude
-
-# use a custom command that reads the prompt from stdin and prints JSON
-export GOODIT_RELEASE_LLM_PROVIDER=command
-export GOODIT_RELEASE_LLM_COMMAND='my-release-llm'
-```
+Releases are cut with `bun run release`; see [docs/releasing.md](docs/releasing.md).
 
 ## Project Layout
 
 ```text
 .
-  CHANGELOG.md
-  README.md
-  scripts/
-    extract-changelog-entry.ts
-    release.ts
+  bin/goodit-evals           CLI entry (shells into src/run.ts)
   src/
-    aggregate.ts
-    baseline.ts
-    collector.ts
-    eval-suite.ts
-    measure.ts
-    preload.ts
-    reporter.ts
-    run.ts
-    scorer.ts
-    trace.ts
-    types.ts
-  examples/
-    capitals.ts
-    capitals.eval.ts
-    country-briefing.ts
-    country-briefing.eval.ts
+    index.ts                 public API
+    eval-suite.ts            evalSuite and evalSuite.each
+    checks.ts                Facts() and its LLM judge
+    scorer.ts                built-in scorers and createScorer
+    llm-scorer.ts            LLM judge scorers and the autoevals adapter
+    measure.ts               measure, score, suite
+    trace.ts                 traceModel and token tracing
+    collector.ts             per-test metric collection
+    aggregate.ts             suite aggregates
+    baseline.ts              baseline files and comparisons
+    estimates.ts             baseline-based run estimates
+    reporter.ts              terminal and JSON reports
+    preload.ts               bun test preload hook
+    run.ts, cli.ts, runner.ts  CLI and runner
+    selector.ts              interactive Ink selector
+  scripts/                   release tooling and build helpers
+  examples/                  sample eval files
+  docs/                      screenshots and docs/releasing.md
 ```
+
+## Contributing, Security, License
+
+- Contributing: see [CONTRIBUTING.md](CONTRIBUTING.md).
+- Security: see [SECURITY.md](SECURITY.md).
+- License: [MIT](LICENSE).
