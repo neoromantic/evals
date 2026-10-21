@@ -5,13 +5,14 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
 
 permissions: {}
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -29,8 +30,8 @@ jobs:
   # The one required check for the branch ruleset. It is named exactly "ci".
   ci:
     needs: [build, hygiene]
-    if: always()
-    runs-on: ubuntu-latest
+    if: always() && github.event.pull_request.draft != true
+    runs-on: ${{ fromJSON('{"true":"oss-linux","false":"ubuntu-latest"}')[format('{0}', vars.CI_SELF_HOSTED == 'true' && github.ref == 'refs/heads/main')] }}
     permissions: {}
     steps:
       - name: All jobs passed
