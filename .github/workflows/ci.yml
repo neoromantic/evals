@@ -35,5 +35,8 @@ jobs:
     permissions: {}
     steps:
       - name: All jobs passed
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        # A step `if:` without a status function implies success(), which is false when a
+        # needed job was cancelled (say, no runner picked it up). Without always() the step
+        # is then skipped and the gate passes.
+        if: always() && (contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled'))
         run: exit 1
