@@ -9,4 +9,4 @@
 
 - [ ] Tests pass locally and use made-up data only
 - [ ] README and docs updated if behaviour changed
-- [ ] Title follows Conventional Commits (`feat: …`, `fix: …`, `docs: …`)
+- [ ] Title follows the repo's commit style: Conventional Commits (`feat: …`, `fix: …`) unless `AGENTS.md` says otherwise
