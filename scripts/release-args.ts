@@ -3,7 +3,6 @@ import type { VersionBump } from "./release-lib"
 export interface ReleaseOptions {
   dryRun: boolean
   skipPush: boolean
-  skipTweet: boolean
   bump?: VersionBump
   fromRef?: string
 }
@@ -12,8 +11,6 @@ export function parseReleaseArgs(argv: string[]): ReleaseOptions {
   const options: ReleaseOptions = {
     dryRun: false,
     skipPush: false,
-    // evals is in maintenance mode: no release tweet unless --tweet is passed.
-    skipTweet: true,
   }
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -25,12 +22,6 @@ export function parseReleaseArgs(argv: string[]): ReleaseOptions {
         break
       case "--skip-push":
         options.skipPush = true
-        break
-      case "--skip-tweet":
-        options.skipTweet = true
-        break
-      case "--tweet":
-        options.skipTweet = false
         break
       case "--bump":
         index += 1
