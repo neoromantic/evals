@@ -21,7 +21,6 @@ interface ReleaseDraft {
   readmeAction: "unchanged" | "replace"
   readmeSummary: string
   readmeContent: string
-  tweetText: string
 }
 
 interface ReleasePlanDraft {
@@ -30,7 +29,6 @@ interface ReleasePlanDraft {
   changelogSection: string
   readmeAction: "unchanged" | "replace"
   readmeSummary: string
-  tweetText: string
 }
 
 interface ReleaseAnchor {
@@ -149,11 +147,6 @@ async function main() {
   if (!options.skipPush) {
     git(["push", "origin", "main"])
     git(["push", "origin", tagName])
-    if (options.skipTweet) {
-      console.log("Skipping release tweet (pass --tweet to post one).")
-    } else {
-      maybePostTweet(draft.tweetText)
-    }
   }
 
   console.log(`Release prepared: ${tagName}`)
@@ -303,7 +296,6 @@ async function generateReleaseDraft(input: {
       "changelogSection",
       "readmeAction",
       "readmeSummary",
-      "tweetText",
     ],
     properties: {
       releaseSummary: { type: "string" },
@@ -318,7 +310,6 @@ async function generateReleaseDraft(input: {
         enum: ["unchanged", "replace"],
       },
       readmeSummary: { type: "string" },
-      tweetText: { type: "string" },
     },
   }
 
@@ -380,8 +371,7 @@ function buildReleasePrompt(input: {
     "Goals:",
     "1. Write a high-quality changelog section from git history commit messages.",
     "2. Decide whether README.md needs a follow-up rewrite pass.",
-    "3. Draft a short release tweet for X/Twitter.",
-    "4. Preserve correct documentation; do not invent APIs or commands.",
+    "3. Preserve correct documentation; do not invent APIs or commands.",
     "",
     "Output rules:",
     `- changelogSection must start with exactly: ## ${input.nextVersion} - ${input.releaseDate}`,
@@ -389,8 +379,6 @@ function buildReleasePrompt(input: {
     "- If README should not change, set readmeAction to unchanged.",
     "- If README likely needs a rewrite, set readmeAction to replace and explain why in readmeSummary.",
     "- Prefer readmeAction=unchanged when README.md is already in the changed-file list for this release unless the commit log clearly describes an additional undocumented user-facing change.",
-    `- tweetText must be <= 280 characters, mention version ${input.nextVersion}, summarize the main changes, and include this exact npm link: https://www.npmjs.com/package/@goodit/evals`,
-    "- tweetText should read like a natural release announcement, not a changelog bullet list.",
     "",
     "Release context:",
     `- Current version: ${input.currentVersion}`,
@@ -664,29 +652,11 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
     !Array.isArray(value.highlights) ||
     typeof value.changelogSection !== "string" ||
     (value.readmeAction !== "unchanged" && value.readmeAction !== "replace") ||
-    typeof value.readmeSummary !== "string" ||
-    typeof value.tweetText !== "string"
+    typeof value.readmeSummary !== "string"
   ) {
     throw new Error(
       `Invalid release draft payload: ${JSON.stringify(value, null, 2)}`,
     )
-  }
-
-  const tweetText = value.tweetText.trim()
-  const npmLink = "https://www.npmjs.com/package/@goodit/evals"
-
-  if (!tweetText) {
-    throw new Error("Release draft tweetText cannot be empty")
-  }
-
-  if (tweetText.length > 280) {
-    throw new Error(
-      `Release draft tweetText exceeds 280 characters (${tweetText.length})`,
-    )
-  }
-
-  if (!tweetText.includes(npmLink)) {
-    throw new Error(`Release draft tweetText must include ${npmLink}`)
   }
 
   return {
@@ -695,7 +665,6 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
     changelogSection: ensureTrailingNewline(value.changelogSection.trim()),
     readmeAction: value.readmeAction,
     readmeSummary: value.readmeSummary,
-    tweetText,
   }
 }
 
@@ -749,9 +718,6 @@ function printPlan(input: {
   )
   console.log("")
   console.log(input.draft.changelogSection.trim())
-  console.log("")
-  console.log("Tweet preview:")
-  console.log(input.draft.tweetText)
 }
 
 function git(args: string[]): string {
@@ -815,119 +781,6 @@ function getLlmTimeoutMs(): number {
   }
 
   return 60000
-}
-
-function maybePostTweet(text: string) {
-  try {
-    const status = spawnSync("twitter", ["status", "--json"], {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-      encoding: "utf8",
-      timeout: 15000,
-    })
-
-    if (status.error?.code === "ENOENT") {
-      console.warn("Warning: twitter CLI not found; skipping release tweet.")
-      return
-    }
-
-    if (status.error?.name === "TimeoutError" || status.signal) {
-      console.warn(
-        `Warning: twitter status check timed out or was terminated (${status.signal ?? "timeout"}); skipping release tweet.`,
-      )
-      return
-    }
-
-    if (status.status !== 0) {
-      console.warn(
-        "Warning: twitter status check failed; skipping release tweet.",
-      )
-
-      const details = [status.stdout, status.stderr]
-        .filter(Boolean)
-        .join("\n")
-        .trim()
-
-      if (details) {
-        console.warn(details)
-      }
-      return
-    }
-
-    const auth = tryParseJson(status.stdout ?? "")
-
-    if (!auth?.ok || auth?.data?.authenticated !== true) {
-      console.warn(
-        "Warning: twitter CLI is not authenticated; skipping release tweet.",
-      )
-      return
-    }
-
-    const post = spawnSync("twitter", ["post", "--json", text], {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-      encoding: "utf8",
-      timeout: 30000,
-    })
-
-    if (post.error?.code === "ENOENT") {
-      console.warn(
-        "Warning: twitter CLI disappeared before posting; skipping release tweet.",
-      )
-      return
-    }
-
-    if (post.error?.name === "TimeoutError" || post.signal) {
-      console.warn(
-        `Warning: twitter post timed out or was terminated (${post.signal ?? "timeout"}); release will continue.`,
-      )
-      return
-    }
-
-    if (post.status !== 0) {
-      console.warn("Warning: twitter post failed; release will continue.")
-
-      const details = [post.stdout, post.stderr]
-        .filter(Boolean)
-        .join("\n")
-        .trim()
-      const parsed = tryParseJson(post.stdout ?? "")
-      const errorCode = parsed?.error?.details?.code ?? parsed?.error?.code
-      const errorMessage = parsed?.error?.message
-
-      if (errorCode === 187 || /duplicate/i.test(errorMessage ?? "")) {
-        console.warn("Twitter rejected the tweet as a duplicate status.")
-      }
-
-      if (details) {
-        console.warn(details)
-      }
-      return
-    }
-
-    const result = tryParseJson(post.stdout ?? "")
-    const tweetId = result?.data?.id
-    const screenName =
-      result?.data?.author?.screenName ??
-      result?.data?.author?.username ??
-      auth?.data?.user?.screenName ??
-      auth?.data?.user?.username
-
-    if (tweetId && screenName) {
-      console.log(
-        `Release tweet posted: https://x.com/${screenName}/status/${tweetId}`,
-      )
-      return
-    }
-
-    console.log("Release tweet posted.")
-  } catch (error) {
-    console.warn(
-      "Warning: unexpected twitter post error; release will continue.",
-    )
-    console.warn(error instanceof Error ? error.message : String(error))
-    return
-  }
 }
 
 main().catch((error) => {

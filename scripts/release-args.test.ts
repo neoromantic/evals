@@ -2,12 +2,11 @@ import { describe, expect, test } from "bun:test"
 import { parseReleaseArgs } from "./release-args"
 
 describe("parseReleaseArgs", () => {
-  test("parses skip tweet alongside other release flags", () => {
+  test("parses release flags", () => {
     expect(
       parseReleaseArgs([
         "--dry-run",
         "--skip-push",
-        "--skip-tweet",
         "--bump",
         "patch",
         "--from-ref",
@@ -16,20 +15,16 @@ describe("parseReleaseArgs", () => {
     ).toEqual({
       dryRun: true,
       skipPush: true,
-      skipTweet: true,
       bump: "patch",
       fromRef: "v0.7.0",
     })
   })
 
-  test("skips the release tweet unless --tweet is passed", () => {
-    expect(parseReleaseArgs([]).skipTweet).toBe(true)
-    expect(parseReleaseArgs(["--tweet"]).skipTweet).toBe(false)
+  test("defaults to preparing and pushing a release", () => {
+    expect(parseReleaseArgs([])).toEqual({ dryRun: false, skipPush: false })
   })
 
-  test("rejects unknown flags", () => {
-    expect(() => parseReleaseArgs(["--nope"])).toThrow(
-      "Unknown argument: --nope",
-    )
+  test.each(["--nope", "--tweet", "--skip-tweet"])("rejects %s", (flag) => {
+    expect(() => parseReleaseArgs([flag])).toThrow(`Unknown argument: ${flag}`)
   })
 })

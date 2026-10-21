@@ -54,8 +54,6 @@ What it does:
 6. Commits `package.json`, `CHANGELOG.md`, and `README.md` as
    `release: vX.Y.Z`.
 7. Creates tag `vX.Y.Z` and pushes `main` plus the tag.
-8. Posts a short release tweet through the `twitter` CLI only when `--tweet` is
-   passed. If the CLI is missing or fails, the release still succeeds.
 
 A release prepared by hand works the same way: bump `version` in
 `package.json`, add a `## X.Y.Z - YYYY-MM-DD` section to `CHANGELOG.md`, commit,

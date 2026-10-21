@@ -108,8 +108,6 @@ evals is in maintenance mode: bug fixes and dependency updates only, no new feat
   - Prepares changelog/docs, validates, commits, tags, and pushes a release from a clean `main` checkout.
 - `bun run release -- --skip-push`
   - Prepares changelog/docs, validates, commits, and tags a release without pushing `main` or the tag.
-- `bun run release -- --tweet`
-  - Same as `bun run release`, and also posts a release tweet (off by default). Release details: `docs/releasing.md`.
 
 ## CLI Entrypoint
 
