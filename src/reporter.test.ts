@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import {
   classifyScorerScore,
   displayMetricName,
@@ -209,15 +209,13 @@ function createReport(tests: VerboseTestReport[]): SuiteReport {
 }
 
 function captureLogs(fn: () => void): string {
-  const lines: string[] = [];
-  const originalLog = console.log;
-  console.log = (...args: unknown[]) => lines.push(args.join(" "));
+  const log = spyOn(console, "log");
   try {
     fn();
+    return log.mock.calls.map((args) => args.join(" ")).join("\n");
   } finally {
-    console.log = originalLog;
+    log.mockRestore();
   }
-  return lines.join("\n");
 }
 
 function stripAnsi(value: string): string {

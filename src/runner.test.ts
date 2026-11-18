@@ -108,5 +108,5 @@ describe("--json output", () => {
     } finally {
       rmSync(tempDir, { recursive: true, force: true });
     }
-  }, 30000);
+  });
 });
