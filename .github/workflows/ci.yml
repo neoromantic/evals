@@ -21,6 +21,7 @@ jobs:
       contents: read
     with:
       e2e: true
+      pack: true
 
   hygiene:
     uses: neoromantic/devkit/.github/workflows/hygiene.yml@v1

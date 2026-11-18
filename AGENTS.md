@@ -89,8 +89,13 @@ evals is in maintenance mode: bug fixes and dependency updates only, no new feat
   - Updates baselines only for matching eval tests.
 - `bun run test`
   - Runs framework and release tests (`bun test src/*.test.ts scripts/*.test.ts`).
+- `bun run check`
+  - Runs `typecheck` and `check:knip`; CI runs this.
 - `bun run typecheck`
   - Runs TypeScript checks (`tsc --noEmit`).
+- `bun run check:knip`
+  - Runs Knip (`knip.json`): unused files and dependencies, unlisted or unresolved imports.
+    Exports are public API and not checked. `examples/*.eval.ts` are entries, run by `bun run eval`.
 - `bun run build`
   - Builds `dist` and rewrites emitted local import specifiers.
 - `bun run clean`

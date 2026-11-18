@@ -1,0 +1,5 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "include": ["files", "dependencies", "devDependencies", "unlisted", "unresolved", "binaries"],
+  "entry": ["examples/*.eval.ts"]
+}

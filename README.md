@@ -705,7 +705,7 @@ bun run eval         # run eval discovery + report
 bun run eval:select  # choose eval files interactively, then run them
 bun run eval:update  # run and update baselines
 bun run test         # unit/integration tests for framework
-bun run typecheck
+bun run check        # typecheck + Knip (unused files and dependencies)
 bun run build
 ```
 
