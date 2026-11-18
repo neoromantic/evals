@@ -185,9 +185,6 @@ describe("evalSuite async data integration", () => {
 
       expect(run.exitCode).toBe(0);
       expect(output).toContain("parallel async suite (3 tests");
-      // All async-data cases run inside one Bun test ("evaluate all"). Bun hides
-      // passing test names in agent shells (CLAUDECODE=1 and similar), so check
-      // the summary line instead of the test name.
       expect(output).toContain("Ran 1 test across 1 file");
       expect(trace.maxActiveTasks).toBeGreaterThan(1);
     } finally {

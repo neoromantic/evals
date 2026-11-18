@@ -33,7 +33,7 @@ export async function measure<T>(fn: (m: MeasureContext) => Promise<T>): Promise
   } catch (err) {
     error = true;
     collector.setTestPassed(false);
-    throw err; // Re-throw so bun test catches it
+    throw err;
   } finally {
     end = performance.now();
 

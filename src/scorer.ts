@@ -18,10 +18,6 @@ export function createScorer<TInput = string, TOutput = string, TExpected = TOut
   return opts;
 }
 
-// ---------------------------------------------------------------------------
-// Built-in heuristic scorers
-// ---------------------------------------------------------------------------
-
 export const ExactMatch = createScorer<string, string, string>({
   name: "ExactMatch",
   description: "Strict equality between output and expected",

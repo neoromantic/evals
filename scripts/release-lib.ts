@@ -60,7 +60,6 @@ export function mergeChangelog(existing: string, section: string): string {
     return `# Changelog\n\n${normalizedSection}\n`;
   }
 
-  // Insert above the newest release, below the title and any preamble.
   const firstSection = normalizedExisting.search(/^## /m);
   if (firstSection === -1) {
     return `${normalizedExisting}\n\n${normalizedSection}\n`;

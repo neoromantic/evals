@@ -1,8 +1,4 @@
-// --- Scorer kind ---
-
 export type ScorerKind = "heuristic" | "judge";
-
-// --- Core metric types ---
 
 export interface MetricRecord {
   name: string;
@@ -17,10 +13,10 @@ export interface ScorerInput<TInput = string, TOutput = string, TExpected = TOut
 }
 
 export interface ScorerResult {
-  score: number; // 0.0 – 1.0
+  score: number;
   name: string;
   description?: string;
-  metadata?: unknown; // Diagnostic info
+  metadata?: unknown;
   kind?: ScorerKind;
 }
 
@@ -36,14 +32,12 @@ export type Scorer<TInput = string, TOutput = string, TExpected = TOutput> = {
     | Promise<number | { score: number; metadata?: unknown }>;
 };
 
-// --- EvalSuite types ---
-
 export interface EvalData<TInput = string, TExpected = string> {
-  name?: string; // Optional explicit test label in reports/output
+  name?: string;
   input: TInput;
   expected?: TExpected;
-  weight?: number; // Default: 1
-  only?: boolean; // Focus filter for debugging
+  weight?: number;
+  only?: boolean;
 }
 
 export interface AggregationEntry {
@@ -52,7 +46,7 @@ export interface AggregationEntry {
 }
 
 export interface SuiteConfig {
-  passThreshold?: number; // Default: 0.5
+  passThreshold?: number;
   aggregations?: Record<string, (entries: AggregationEntry[]) => number>;
 }
 
@@ -64,10 +58,8 @@ export interface EvalSuiteConfig<TInput = string, TOutput = string, TExpected = 
   scorers?: Scorer<TInput, TOutput, TExpected>[];
   passThreshold?: number;
   aggregations?: Record<string, (entries: AggregationEntry[]) => number>;
-  timeout?: number; // Default: 30000
+  timeout?: number;
 }
-
-// --- Measure types ---
 
 export interface MeasureContext {
   metric(name: string, value: number, unit?: string): void;
@@ -82,8 +74,6 @@ export interface MeasureResult<T> {
   metrics: Record<string, number | boolean>;
 }
 
-// --- Collector types ---
-
 export interface TestMetrics {
   suiteKey: string;
   suiteName: string;
@@ -95,11 +85,8 @@ export interface TestMetrics {
   input?: unknown;
   output?: unknown;
   expected?: unknown;
-  /** @internal Phase tracking for token routing */
   _phase?: "task" | "scoring";
 }
-
-// --- Baseline types ---
 
 export interface BaselineMetric {
   value: number;
@@ -132,14 +119,12 @@ export interface BaselineFile {
     | undefined;
 }
 
-// --- Reporter types ---
-
 export interface ComparisonResult {
   metric: string;
   current: number;
   baseline: number;
   tolerance: number;
-  change: number; // percentage
+  change: number;
   regressed: boolean;
   direction: "higher" | "lower";
 }
@@ -165,8 +150,6 @@ export interface SuiteReport {
   perTestComparisons: Record<string, ComparisonResult[]>;
   tests: VerboseTestReport[];
 }
-
-// --- Trace types ---
 
 export interface TraceEntry {
   start: number;

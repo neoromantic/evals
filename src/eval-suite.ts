@@ -8,7 +8,6 @@ const ASYNC_SUITE_BUN_TIMEOUT_MULTIPLIER = 1000;
 const EVAL_STACK_PATH_REGEX =
   /(?:file:\/\/)?((?:\/|[A-Za-z]:[\\/])[^:\n]+?\.eval\.(?:ts|js))(?::\d+:\d+)?/;
 
-// Variant config for evalSuite.each()
 interface VariantEvalSuiteConfig<TInput, TOutput, TExpected, TVariant> extends Omit<
   EvalSuiteConfig<TInput, TOutput, TExpected>,
   "task"
@@ -91,10 +90,6 @@ function evalSuiteImpl<TInput = string, TOutput = string, TExpected = TOutput>(
   );
 }
 
-// ---------------------------------------------------------------------------
-// evalSuite.each() — variant support
-// ---------------------------------------------------------------------------
-
 function evalSuiteEach<TVariant extends { name: string }>(variants: TVariant[]) {
   return <TInput = string, TOutput = string, TExpected = TOutput>(
     name: string,
@@ -110,7 +105,6 @@ function evalSuiteEach<TVariant extends { name: string }>(variants: TVariant[]) 
   };
 }
 
-// Export as a function with .each property
 export const evalSuite = Object.assign(evalSuiteImpl, {
   each: evalSuiteEach,
 });
@@ -135,10 +129,6 @@ export function getAsyncSuiteTimeout(timeout: number, caseCount: number): number
 
   return timeout * safeCaseCount;
 }
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 
 function testLabel<TInput>(item: EvalData<TInput, unknown>): string {
   if (typeof item.name === "string" && item.name.trim().length > 0) {

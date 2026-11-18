@@ -1,9 +1,5 @@
 import type { Scorer, ScorerInput } from "./types";
 
-// ---------------------------------------------------------------------------
-// createLLMJudgeScorer — model-agnostic LLM judge wrapper
-// ---------------------------------------------------------------------------
-
 interface LLMJudgeScorerOpts<TInput = string, TOutput = string, TExpected = TOutput> {
   name: string;
   description?: string;
@@ -48,10 +44,6 @@ export function createLLMJudgeScorer<TInput = string, TOutput = string, TExpecte
   };
 }
 
-// ---------------------------------------------------------------------------
-// wrapAutoeval — adapter for autoevals functions (e.g., Factuality)
-// ---------------------------------------------------------------------------
-
 interface WrapAutoevalOpts {
   name: string;
   description?: string;
@@ -86,12 +78,8 @@ export function wrapAutoeval(opts: WrapAutoevalOpts): Scorer<string, string, str
   });
 }
 
-// ---------------------------------------------------------------------------
-// Semantic helpers — require `ai` and `zod` peer dependencies
-// ---------------------------------------------------------------------------
-
 interface SemanticMatchOpts {
-  model: any; // LanguageModelV1
+  model: any;
   threshold?: number;
 }
 
@@ -132,7 +120,7 @@ export function SemanticMatch(opts: SemanticMatchOpts): Scorer<string, string, s
 }
 
 interface MatchesIntentOpts {
-  model: any; // LanguageModelV1
+  model: any;
   intent: string;
 }
 
@@ -166,7 +154,7 @@ export function MatchesIntent(opts: MatchesIntentOpts): Scorer<string, string> {
 }
 
 interface SemanticContainsOpts {
-  model: any; // LanguageModelV1
+  model: any;
   concepts: string[];
 }
 
@@ -207,10 +195,6 @@ export function SemanticContains(opts: SemanticContainsOpts): Scorer<string, str
     },
   });
 }
-
-// ---------------------------------------------------------------------------
-// Internal
-// ---------------------------------------------------------------------------
 
 let _aiDeps: Promise<[typeof import("ai"), typeof import("zod")]> | undefined;
 

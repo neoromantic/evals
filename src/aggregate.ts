@@ -1,7 +1,5 @@
 import type { AggregationEntry, SuiteConfig, TestMetrics } from "./types";
 
-// --- Metric classification helpers ---
-
 type MetricKind = "latency" | "throughput" | "tokens" | "score" | "error" | "unknown";
 
 function classifyMetric(name: string): MetricKind {
@@ -13,8 +11,6 @@ function classifyMetric(name: string): MetricKind {
   if (name === "error") return "error";
   return "unknown";
 }
-
-// --- Aggregation computation helpers ---
 
 function weightedAvg(entries: AggregationEntry[]): number {
   let sumWeighted = 0;
@@ -84,8 +80,6 @@ function entriesForMetric(tests: TestMetrics[], metricName: string): Aggregation
   return entries;
 }
 
-// --- Aggregation rule lookup ---
-
 type AggOp = "sum" | "avg" | "min" | "max" | "p50" | "p95" | "count" | "rate";
 
 function aggregationsForKind(kind: MetricKind): AggOp[] {
@@ -130,7 +124,6 @@ function buildPassEntries(tests: TestMetrics[], passThreshold: number): Aggregat
       return { value: 0, weight: test.weight };
     }
 
-    // A test passes if ALL its score.* metrics >= passThreshold
     let hasScoreMetric = false;
     let passed = true;
 
@@ -153,8 +146,6 @@ function buildPassEntries(tests: TestMetrics[], passThreshold: number): Aggregat
   });
 }
 
-// --- Main function ---
-
 export function aggregateMetrics(
   tests: TestMetrics[],
   suiteConfig?: SuiteConfig,
@@ -167,10 +158,8 @@ export function aggregateMetrics(
     return result;
   }
 
-  // 1. Collect all unique metric names (numeric only)
   const metricNames = collectNumericMetricNames(tests);
 
-  // 2. For each metric, build entries and compute aggregations
   for (const metric of metricNames) {
     const kind = classifyMetric(metric);
     const ops = aggregationsForKind(kind);
@@ -195,14 +184,12 @@ export function aggregateMetrics(
     }
   }
 
-  // 3. Always add test.count and test.pass_rate
   result["test.count"] = tests.length;
 
   const passThreshold = suiteConfig?.passThreshold ?? 0.5;
   const passEntries = buildPassEntries(tests, passThreshold);
   result["test.pass_rate"] = weightedAvg(passEntries);
 
-  // 4. Run custom aggregations from suiteConfig
   if (suiteConfig?.aggregations) {
     for (const [name, aggregationFn] of Object.entries(suiteConfig.aggregations)) {
       const metricKey = name.includes(".") ? name.split(".").slice(0, -1).join(".") : name;

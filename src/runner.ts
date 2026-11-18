@@ -14,9 +14,7 @@ export interface RunEvalFilesOptions {
   jsonOutput: boolean;
 }
 
-// Write all of `text` to stdout before returning. When stdout is a pipe,
-// console.log and Bun.write can stop after 64 KiB (or repeat the first
-// chunk) once the process exits, which broke `--json | jq` on big reports.
+// WARNING: console.log and Bun.write can cut piped stdout at 64 KiB on exit; keep writeSync.
 function writeStdoutSync(text: string): void {
   const buffer = Buffer.from(text);
   let offset = 0;

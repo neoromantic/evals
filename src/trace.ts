@@ -4,7 +4,6 @@ import type { TraceEntry } from "./types";
 
 const traceStorage = new AsyncLocalStorage<TraceEntry[]>();
 
-/** Extract a plain number from AI SDK token counts (handles both number and {total} object) */
 function tokenCount(v: unknown): number {
   if (typeof v === "number") return v;
   if (v && typeof v === "object" && "total" in v) return (v as any).total;

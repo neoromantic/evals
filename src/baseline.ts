@@ -109,9 +109,7 @@ function buildMetricRecord(
   const record: Record<string, BaselineMetric | number> = {};
 
   for (const [name, value] of Object.entries(metrics)) {
-    // Skip NaN values (would become null in JSON)
     if (Number.isNaN(value)) continue;
-    // Store as plain number — tolerance/direction are derived from defaults
     record[name] = value;
   }
 
@@ -168,7 +166,6 @@ function suiteIdFromSuiteKey(suiteKey: string): string {
 function normalizeSuitesByStableId(suites: BaselineSuites): BaselineSuites {
   const normalized: BaselineSuites = {};
 
-  // Prefer already-stable keys when both stable and legacy path keys exist.
   for (const [storedKey, suiteData] of Object.entries(suites)) {
     const stableId = suiteIdFromSuiteKey(storedKey);
     if (storedKey === stableId) {
@@ -176,7 +173,6 @@ function normalizeSuitesByStableId(suites: BaselineSuites): BaselineSuites {
     }
   }
 
-  // Fill remaining entries from legacy path-dependent keys.
   for (const [storedKey, suiteData] of Object.entries(suites)) {
     const stableId = suiteIdFromSuiteKey(storedKey);
     if (!(stableId in normalized)) {

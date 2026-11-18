@@ -1,7 +1,5 @@
 import type { ComparisonResult, SuiteReport, VerboseTestReport } from "./types";
 
-// --- ANSI color helpers ---
-
 const bold = (s: string) => `\x1b[1m${s}\x1b[22m`;
 const dim = (s: string) => `\x1b[2m${s}\x1b[22m`;
 const green = (s: string) => `\x1b[32m${s}\x1b[39m`;
@@ -14,8 +12,6 @@ const ANSI_SGR = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 function stripAnsi(s: string): string {
   return s.replace(ANSI_SGR, "");
 }
-
-// --- Formatting helpers ---
 
 const LINE_W = 60;
 const heavy = "═".repeat(LINE_W);
@@ -44,20 +40,16 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   "tokens.scorer.total": "Scorer Total Tokens",
 };
 
-/** Transform internal metric names to human-friendly display names */
 export function displayMetricName(name: string): string {
   const direct = METRIC_DISPLAY_NAMES[name];
   if (direct) return direct;
 
-  // score.X.avg → X (avg), score.X.min → X (min)
   const scoreAgg = name.match(/^score\.(.+)\.(avg|min|max|p50|p95|sum|count|rate)$/);
   if (scoreAgg) return `${scoreAgg[1]} (${scoreAgg[2]})`;
 
-  // score.X → X (per-test, no agg suffix)
   const scoreRaw = name.match(/^score\.(.+)$/);
   if (scoreRaw) return scoreRaw[1]!;
 
-  // latency.sum → Latency (sum)
   const agg = name.match(/^(.+)\.(avg|min|sum|count|rate)$/);
   if (agg) {
     const baseName = agg[1]!;
@@ -78,35 +70,28 @@ export function displayScore(score: number | null): string {
   return red(label);
 }
 
-/** Format a metric value for display. Uses the original metric name for classification. */
 export function formatMetricValue(name: string, value: number): string {
   const lower = name.toLowerCase();
 
-  // Latency / TTFB → seconds or milliseconds
   if (lower.startsWith("latency") || lower.startsWith("ttfb")) {
     if (value >= 1000) return `${(value / 1000).toFixed(1)}s`;
     return `${Math.round(value)} ms`;
   }
 
-  // Pass rate → PASS/FAIL/percentage
   if (lower.endsWith("pass_rate")) {
     if (value === 1) return green("PASS");
     if (value === 0) return red("FAIL");
     return yellow(`${Math.round(value * 100)}%`);
   }
 
-  // Score → decimal (combined line renderer handles boolean-aware formatting)
   if (lower.startsWith("score")) {
     return value.toFixed(2);
   }
 
-  // Test count → integer
   if (lower === "test.count") return String(Math.round(value));
 
-  // Tokens → integer
   if (lower.startsWith("tokens")) return String(Math.round(value));
 
-  // Error count → integer
   if (lower.startsWith("error")) return String(Math.round(value));
 
   return value.toFixed(2);
@@ -122,10 +107,8 @@ export function formatChange(comparison: ComparisonResult): string {
     return `${red(pctStr)}  ${red(`${arrow} REGRESSION`)}`;
   }
 
-  // Near-zero changes → dim
   if (Math.abs(changePct) < 0.5) return dim(pctStr);
 
-  // Color based on whether the change is an improvement or degradation
   const isImprovement =
     (comparison.direction === "lower" && changePct < 0) ||
     (comparison.direction === "higher" && changePct > 0);
@@ -536,7 +519,6 @@ export function printSuiteReport(
   evalFile?: string,
   options?: PrintSuiteReportOptions,
 ): void {
-  // Header
   console.log("");
   console.log(heavy);
   if (evalFile) {
@@ -545,7 +527,6 @@ export function printSuiteReport(
   console.log(heavy);
   console.log("");
 
-  // Suite title
   console.log(
     bold(
       ` ${report.suiteName} (${report.testCount} tests, pass rate: ${displayScore(report.passRate)})`,
@@ -555,7 +536,6 @@ export function printSuiteReport(
 
   printPerTestResults(report);
 
-  // Aggregates (skip NaN values)
   const aggEntries = Object.entries(report.aggregates).filter(([, v]) => !Number.isNaN(v));
   const aggComparisons = report.comparisons;
   const booleanScores = detectBooleanScores(report);
@@ -592,7 +572,6 @@ export function printSuiteReport(
     }
   }
 
-  // Per-test changes — filter zero-change, use PASS/FAIL for boolean scores
   const perTestFiltered: [string, ComparisonResult[]][] = [];
   for (const testName of Object.keys(report.perTestComparisons)) {
     const allComps = report.perTestComparisons[testName]!;
@@ -764,8 +743,6 @@ function summarizeReports(reports: SuiteReport[]): SummaryCounts {
   return { regressions, metricsOk, hasBaseline };
 }
 
-// --- Internal utility ---
-
 function asVariantSuiteEntry(report: SuiteReport): VariantSuiteEntry | null {
   const match = report.suiteName.match(/^(.*)\s\[(.+)\]$/);
   const baseSuiteName = match?.[1]?.trim();
@@ -798,7 +775,6 @@ function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
   }
 
   const metrics = [...metricSet];
-  // Only show .avg for scores in variant comparison (min/max/p50/p95 shown inline)
   const filtered = metrics.filter((name) => {
     if (name.startsWith("score.")) return name.endsWith(".avg");
     if (name.startsWith("latency") || name.startsWith("ttfb")) return name.endsWith(".avg");

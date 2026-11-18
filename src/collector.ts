@@ -9,8 +9,6 @@ class Collector {
   private currentEntryStorage: AsyncLocalStorage<TestMetrics> = new AsyncLocalStorage();
   private legacyCurrentEntry: TestMetrics | null = null;
 
-  // --- Suite configuration ---
-
   registerSuite(suiteName: string, config: SuiteConfig, evalFilePath?: string): string {
     const suiteKey = this.createSuiteKey(suiteName, evalFilePath);
     this.suiteConfigs.set(suiteKey, config);
@@ -34,8 +32,6 @@ class Collector {
     return this.suiteNames.get(suiteKey);
   }
 
-  // --- Eval file tracking ---
-
   setEvalFile(suiteKey: string, filePath: string): void {
     this.evalFiles.set(suiteKey, filePath);
   }
@@ -43,8 +39,6 @@ class Collector {
   getEvalFile(suiteKey: string): string | undefined {
     return this.evalFiles.get(suiteKey);
   }
-
-  // --- Test lifecycle ---
 
   beginTest(suiteKeyOrName: string, suiteNameOrTestName: string, maybeTestName?: string): void {
     const suiteKey = suiteKeyOrName;
@@ -71,8 +65,6 @@ class Collector {
   endTest(): void {
     this.legacyCurrentEntry = null;
   }
-
-  // --- Metric recording ---
 
   recordMetric(name: string, value: number, _unit?: string): void {
     const entry = this.currentEntry();
@@ -138,8 +130,6 @@ class Collector {
     entry.scorerResults.push(result);
   }
 
-  // --- Query ---
-
   getTestResults(): TestMetrics[] {
     return this.testResults;
   }
@@ -158,8 +148,6 @@ class Collector {
       .filter((suiteName) => suiteName.length > 0);
   }
 
-  // --- Reset ---
-
   reset(): void {
     this.suiteConfigs.clear();
     this.suiteNames.clear();
@@ -167,8 +155,6 @@ class Collector {
     this.evalFiles.clear();
     this.legacyCurrentEntry = null;
   }
-
-  // --- Internal ---
 
   private currentEntry(): TestMetrics | null {
     const activeEntry = this.currentEntryStorage.getStore();

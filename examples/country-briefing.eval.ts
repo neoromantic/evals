@@ -25,8 +25,8 @@ const FactualityScorer = createLLMJudgeScorer<string, string, BriefingExpected>(
 
     const rawScore = result.score ?? 0;
     const choice = (result.metadata as any)?.choice as string | undefined;
-    // Consistent supersets (choice B) are fully acceptable for this task
-    const score = choice === "B" ? 1 : rawScore;
+    const consistentSuperset = choice === "B";
+    const score = consistentSuperset ? 1 : rawScore;
 
     return { score, metadata: { ...result.metadata, rawScore } };
   },

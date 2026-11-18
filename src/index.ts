@@ -1,5 +1,3 @@
-// @goodit/evals — Public API
-
 export type { FactsCheck } from "./checks";
 export { Facts, isFactsCheck } from "./checks";
 export { collector } from "./collector";

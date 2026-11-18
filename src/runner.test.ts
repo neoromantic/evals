@@ -92,8 +92,6 @@ describe("--json output", () => {
         ].join("\n"),
       );
 
-      // A shell pipe reproduces the truncation; Bun.spawn's own pipe drains
-      // too fast to hit it.
       const outPath = join(tempDir, "out.json");
       const proc = Bun.spawn(
         ["sh", "-c", 'bun "$0" --json 2>/dev/null | cat > "$1"', runPath, outPath],

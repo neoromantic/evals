@@ -11,8 +11,6 @@ afterEach(() => {
   collector.reset();
 });
 
-// --- Helpers ---
-
 function makeTestMetrics(metrics: Record<string, number | boolean>, passed = true): TestMetrics {
   return {
     suiteKey: "suite::key",
@@ -24,10 +22,6 @@ function makeTestMetrics(metrics: Record<string, number | boolean>, passed = tru
     scorerResults: [],
   };
 }
-
-// ---------------------------------------------------------------------------
-// 1. collector phase routing
-// ---------------------------------------------------------------------------
 
 describe("collector phase routing", () => {
   test("recordTokens routes to tokens.* when phase is task (default)", () => {
@@ -114,10 +108,6 @@ describe("collector phase routing", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 2. measure taskEnd()
-// ---------------------------------------------------------------------------
-
 describe("measure taskEnd()", () => {
   test("when taskEnd() is called, latency reflects task-only time", async () => {
     await collector.runTest("suite", "suite", "task-end", async () => {
@@ -132,7 +122,6 @@ describe("measure taskEnd()", () => {
     const latency = entry?.metrics.latency as number;
     const total = entry?.metrics["latency.total"] as number;
 
-    // Task latency should be roughly 50ms, total roughly 100ms
     expect(latency).toBeGreaterThan(30);
     expect(latency).toBeLessThan(total);
     expect(total).toBeGreaterThan(80);
@@ -175,7 +164,7 @@ describe("measure taskEnd()", () => {
         await sleep(30);
         m.taskEnd();
         await sleep(50);
-        m.taskEnd(); // second call should be ignored
+        m.taskEnd();
         await sleep(30);
       });
     });
@@ -184,16 +173,10 @@ describe("measure taskEnd()", () => {
     const latency = entry?.metrics.latency as number;
     const total = entry?.metrics["latency.total"] as number;
 
-    // Task latency should be ~30ms (first taskEnd), not ~80ms (second taskEnd)
     expect(latency).toBeLessThan(60);
-    // Total should be ~110ms (30 + 50 + 30)
     expect(total).toBeGreaterThan(80);
   });
 });
-
-// ---------------------------------------------------------------------------
-// 3. aggregateMetrics with new metric names
-// ---------------------------------------------------------------------------
 
 describe("aggregateMetrics with new metric names", () => {
   test("latency.scoring gets latency-kind aggregations", () => {
@@ -263,10 +246,6 @@ describe("aggregateMetrics with new metric names", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 4. displayMetricName for new names
-// ---------------------------------------------------------------------------
-
 describe("displayMetricName for new names", () => {
   test('latency.scoring -> "Scoring Latency"', () => {
     expect(displayMetricName("latency.scoring")).toBe("Scoring Latency");
@@ -292,10 +271,6 @@ describe("displayMetricName for new names", () => {
     expect(displayMetricName("tokens.scorer.input.sum")).toBe("Scorer Input Tokens");
   });
 });
-
-// ---------------------------------------------------------------------------
-// 5. createLLMJudgeScorer
-// ---------------------------------------------------------------------------
 
 describe("createLLMJudgeScorer", () => {
   test('sets kind: "judge" on returned scorer', () => {
@@ -400,10 +375,6 @@ describe("createLLMJudgeScorer", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 6. wrapAutoeval
-// ---------------------------------------------------------------------------
-
 describe("wrapAutoeval", () => {
   test('wraps autoeval function into scorer with kind "judge"', () => {
     const scorer = wrapAutoeval({
@@ -421,7 +392,6 @@ describe("wrapAutoeval", () => {
       retryDelayMs: 0,
       autoeval: async () => ({ score: 0.5, metadata: { choice: "B" } }),
       normalizeScore: (raw, metadata) => {
-        // Custom normalization: map 0.5 to 1 when choice is "B"
         const choice = (metadata as Record<string, unknown>)?.choice;
         return choice === "B" ? 1 : raw;
       },
@@ -483,10 +453,6 @@ describe("wrapAutoeval", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// 7. ScorerKind propagation
-// ---------------------------------------------------------------------------
-
 describe("ScorerKind propagation", () => {
   test('createScorer with kind: "judge" sets kind on returned scorer', () => {
     const scorer = createScorer({
@@ -507,10 +473,6 @@ describe("ScorerKind propagation", () => {
     expect(scorer.kind).toBeUndefined();
   });
 });
-
-// ---------------------------------------------------------------------------
-// Internal helpers
-// ---------------------------------------------------------------------------
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

@@ -468,6 +468,5 @@ afterAll(() => {
     printSummary(reports);
   }
 
-  // Reset collector for next potential run
   collector.reset();
 });

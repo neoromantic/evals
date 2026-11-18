@@ -260,8 +260,8 @@ evalSuite(name: string, config: {
   name?: string // Optional explicit test label in reports/output
   input: TInput
   expected?: TExpected
-  weight?: number
-  only?: boolean
+  weight?: number // default 1
+  only?: boolean // when any case sets it, only those cases run
 }
 ```
 
