@@ -50,7 +50,8 @@ What it does:
    - `!:` or `BREAKING CHANGE` -> major
 4. Uses an LLM to draft the next `CHANGELOG.md` entry and optionally refresh
    `README.md`.
-5. Runs `typecheck`, `test`, `build`, and `npm pack --dry-run`.
+5. Formats `package.json`, `CHANGELOG.md` and `README.md` with `bun run format`,
+   then runs `typecheck`, `test`, `build`, and `npm pack --dry-run`.
 6. Commits `package.json`, `CHANGELOG.md`, and `README.md` as
    `release: vX.Y.Z`.
 7. Creates tag `vX.Y.Z` and pushes `main` plus the tag.

@@ -1,42 +1,30 @@
-import type { Scorer, ScorerInput } from "./types"
+import type { Scorer, ScorerInput } from "./types";
 
-// ---------------------------------------------------------------------------
-// createLLMJudgeScorer — model-agnostic LLM judge wrapper
-// ---------------------------------------------------------------------------
-
-interface LLMJudgeScorerOpts<
-  TInput = string,
-  TOutput = string,
-  TExpected = TOutput,
-> {
-  name: string
-  description?: string
+interface LLMJudgeScorerOpts<TInput = string, TOutput = string, TExpected = TOutput> {
+  name: string;
+  description?: string;
   judge: (
     input: ScorerInput<TInput, TOutput, TExpected>,
-  ) => Promise<number | { score: number; metadata?: unknown }>
-  retries?: number
-  retryDelayMs?: number
-  errorScore?: number
+  ) => Promise<number | { score: number; metadata?: unknown }>;
+  retries?: number;
+  retryDelayMs?: number;
+  errorScore?: number;
 }
 
-export function createLLMJudgeScorer<
-  TInput = string,
-  TOutput = string,
-  TExpected = TOutput,
->(
+export function createLLMJudgeScorer<TInput = string, TOutput = string, TExpected = TOutput>(
   opts: LLMJudgeScorerOpts<TInput, TOutput, TExpected>,
-): Scorer<TInput, TOutput, TExpected> {
-  return {
+) {
+  const scorer: Scorer<TInput, TOutput, TExpected> = {
     name: opts.name,
     description: opts.description,
     kind: "judge",
     scorer: async (input) => {
-      const maxRetries = opts.retries ?? 2
-      const baseDelay = opts.retryDelayMs ?? 1000
+      const maxRetries = opts.retries ?? 2;
+      const baseDelay = opts.retryDelayMs ?? 1000;
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         try {
-          return await opts.judge(input)
+          return await opts.judge(input);
         } catch (error) {
           if (attempt === maxRetries) {
             return {
@@ -46,36 +34,31 @@ export function createLLMJudgeScorer<
                 retriesExhausted: true,
                 attempts: attempt + 1,
               },
-            }
+            };
           }
-          await sleep(baseDelay * 2 ** attempt)
+          await sleep(baseDelay * 2 ** attempt);
         }
       }
-      return { score: opts.errorScore ?? 0 }
+      return { score: opts.errorScore ?? 0 };
     },
-  }
+  };
+  return scorer;
 }
-
-// ---------------------------------------------------------------------------
-// wrapAutoeval — adapter for autoevals functions (e.g., Factuality)
-// ---------------------------------------------------------------------------
 
 interface WrapAutoevalOpts {
-  name: string
-  description?: string
+  name: string;
+  description?: string;
   autoeval: (args: {
-    input: string
-    output: string
-    expected?: string
-  }) => Promise<{ score: number | null; metadata?: Record<string, unknown> }>
-  normalizeScore?: (raw: number, metadata?: Record<string, unknown>) => number
-  retries?: number
-  retryDelayMs?: number
+    input: string;
+    output: string;
+    expected?: string;
+  }) => Promise<{ score: number | null; metadata?: Record<string, unknown> }>;
+  normalizeScore?: (raw: number, metadata?: Record<string, unknown>) => number;
+  retries?: number;
+  retryDelayMs?: number;
 }
 
-export function wrapAutoeval(
-  opts: WrapAutoevalOpts,
-): Scorer<string, string, string> {
+export function wrapAutoeval(opts: WrapAutoevalOpts) {
   return createLLMJudgeScorer<string, string, string>({
     name: opts.name,
     description: opts.description,
@@ -86,36 +69,28 @@ export function wrapAutoeval(
         input: String(input),
         output: String(output),
         expected: expected != null ? String(expected) : undefined,
-      })
+      });
 
-      const rawScore = result.score ?? 0
-      const score = opts.normalizeScore
-        ? opts.normalizeScore(rawScore, result.metadata)
-        : rawScore
+      const rawScore = result.score ?? 0;
+      const score = opts.normalizeScore ? opts.normalizeScore(rawScore, result.metadata) : rawScore;
 
-      return { score, metadata: result.metadata }
+      return { score, metadata: result.metadata };
     },
-  })
+  });
 }
-
-// ---------------------------------------------------------------------------
-// Semantic helpers — require `ai` and `zod` peer dependencies
-// ---------------------------------------------------------------------------
 
 interface SemanticMatchOpts {
-  model: any // LanguageModelV1
-  threshold?: number
+  model: any;
+  threshold?: number;
 }
 
-export function SemanticMatch(
-  opts: SemanticMatchOpts,
-): Scorer<string, string, string> {
+export function SemanticMatch(opts: SemanticMatchOpts) {
   return createLLMJudgeScorer<string, string, string>({
     name: "SemanticMatch",
     description: "LLM judge: semantic similarity between output and expected",
     judge: async ({ output, expected }) => {
-      const [{ generateObject }, { z }] = await loadAiDeps()
-      const threshold = opts.threshold ?? 0.7
+      const [{ generateObject }, { z }] = await loadAiDeps();
+      const threshold = opts.threshold ?? 0.7;
 
       const { object } = await generateObject({
         model: opts.model,
@@ -131,7 +106,7 @@ export function SemanticMatch(
           "",
           `Actual: ${String(output)}`,
         ].join("\n"),
-      })
+      });
 
       return {
         score: object.score >= threshold ? 1 : object.score,
@@ -140,31 +115,27 @@ export function SemanticMatch(
           rationale: object.rationale,
           threshold,
         },
-      }
+      };
     },
-  })
+  });
 }
 
 interface MatchesIntentOpts {
-  model: any // LanguageModelV1
-  intent: string
+  model: any;
+  intent: string;
 }
 
-export function MatchesIntent(opts: MatchesIntentOpts): Scorer<string, string> {
+export function MatchesIntent(opts: MatchesIntentOpts) {
   return createLLMJudgeScorer<string, string>({
     name: "MatchesIntent",
     description: `LLM judge: output matches intent "${opts.intent}"`,
     judge: async ({ output }) => {
-      const [{ generateObject }, { z }] = await loadAiDeps()
+      const [{ generateObject }, { z }] = await loadAiDeps();
 
       const { object } = await generateObject({
         model: opts.model,
         schema: z.object({
-          score: z
-            .number()
-            .min(0)
-            .max(1)
-            .describe("How well the output matches the intent, 0-1"),
+          score: z.number().min(0).max(1).describe("How well the output matches the intent, 0-1"),
           rationale: z.string().describe("Brief explanation"),
         }),
         prompt: [
@@ -176,34 +147,30 @@ export function MatchesIntent(opts: MatchesIntentOpts): Scorer<string, string> {
           "",
           "Score 1.0 if it fully matches, 0.0 if completely unrelated.",
         ].join("\n"),
-      })
+      });
 
-      return { score: object.score, metadata: { rationale: object.rationale } }
+      return { score: object.score, metadata: { rationale: object.rationale } };
     },
-  })
+  });
 }
 
 interface SemanticContainsOpts {
-  model: any // LanguageModelV1
-  concepts: string[]
+  model: any;
+  concepts: string[];
 }
 
-export function SemanticContains(
-  opts: SemanticContainsOpts,
-): Scorer<string, string> {
+export function SemanticContains(opts: SemanticContainsOpts) {
   return createLLMJudgeScorer<string, string>({
     name: "SemanticContains",
     description: `LLM judge: output contains concepts [${opts.concepts.join(", ")}]`,
     judge: async ({ output }) => {
-      const [{ generateObject }, { z }] = await loadAiDeps()
+      const [{ generateObject }, { z }] = await loadAiDeps();
 
       const { object } = await generateObject({
         model: opts.model,
         schema: z.object({
           found: z.array(z.string()).describe("Concepts found in the output"),
-          missing: z
-            .array(z.string())
-            .describe("Concepts not found in the output"),
+          missing: z.array(z.string()).describe("Concepts not found in the output"),
           rationale: z.string().describe("Brief explanation"),
         }),
         prompt: [
@@ -213,10 +180,10 @@ export function SemanticContains(
           "",
           `Output: ${String(output)}`,
         ].join("\n"),
-      })
+      });
 
-      const total = opts.concepts.length
-      const score = total > 0 ? object.found.length / total : 1
+      const total = opts.concepts.length;
+      const score = total > 0 ? object.found.length / total : 1;
 
       return {
         score,
@@ -225,24 +192,20 @@ export function SemanticContains(
           missing: object.missing,
           rationale: object.rationale,
         },
-      }
+      };
     },
-  })
+  });
 }
 
-// ---------------------------------------------------------------------------
-// Internal
-// ---------------------------------------------------------------------------
+let _aiDeps: Promise<[typeof import("ai"), typeof import("zod")]> | undefined;
 
-let _aiDeps: Promise<[typeof import("ai"), typeof import("zod")]> | undefined
-
-function loadAiDeps(): Promise<[typeof import("ai"), typeof import("zod")]> {
+function loadAiDeps() {
   if (!_aiDeps) {
-    _aiDeps = Promise.all([import("ai"), import("zod")])
+    _aiDeps = Promise.all([import("ai"), import("zod")]);
   }
-  return _aiDeps
+  return _aiDeps;
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

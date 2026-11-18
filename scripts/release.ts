@@ -1,8 +1,8 @@
-import { spawnSync } from "node:child_process"
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { parseReleaseArgs } from "./release-args"
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { parseReleaseArgs } from "./release-args";
 import {
   bumpVersion,
   type CommitEntry,
@@ -10,80 +10,80 @@ import {
   mergeChangelog,
   parseReleaseHeading,
   type VersionBump,
-} from "./release-lib"
+} from "./release-lib";
 
-type LlmProvider = "codex" | "claude" | "command"
+type LlmProvider = "codex" | "claude" | "command";
 
 interface ReleaseDraft {
-  releaseSummary: string
-  highlights: string[]
-  changelogSection: string
-  readmeAction: "unchanged" | "replace"
-  readmeSummary: string
-  readmeContent: string
+  releaseSummary: string;
+  highlights: string[];
+  changelogSection: string;
+  readmeAction: "unchanged" | "replace";
+  readmeSummary: string;
+  readmeContent: string;
 }
 
 interface ReleasePlanDraft {
-  releaseSummary: string
-  highlights: string[]
-  changelogSection: string
-  readmeAction: "unchanged" | "replace"
-  readmeSummary: string
+  releaseSummary: string;
+  highlights: string[];
+  changelogSection: string;
+  readmeAction: "unchanged" | "replace";
+  readmeSummary: string;
 }
 
 interface ReleaseAnchor {
-  ref: string
-  version: string | null
-  source: "tag" | "commit" | "root"
+  ref: string;
+  version: string | null;
+  source: "tag" | "commit" | "root";
 }
 
-const cwd = process.cwd()
-const packageJsonPath = join(cwd, "package.json")
-const readmePath = join(cwd, "README.md")
-const changelogPath = join(cwd, "CHANGELOG.md")
+const cwd = process.cwd();
+const packageJsonPath = join(cwd, "package.json");
+const readmePath = join(cwd, "README.md");
+const changelogPath = join(cwd, "CHANGELOG.md");
 
 async function main() {
-  const options = parseReleaseArgs(Bun.argv.slice(2))
-  ensureGitRepository()
-  fetchTags()
+  const options = parseReleaseArgs(Bun.argv.slice(2));
+  ensureGitRepository();
+  fetchTags();
 
-  const packageJson = readJsonFile(packageJsonPath) as Record<string, unknown>
-  const currentVersion = String(packageJson.version ?? "")
+  const packageJson = readJsonFile(packageJsonPath) as Record<string, unknown>;
+  const currentVersion = String(packageJson.version ?? "");
 
   if (!currentVersion) {
-    throw new Error("package.json is missing a version")
+    throw new Error("package.json is missing a version");
   }
 
-  const branch = git(["symbolic-ref", "--quiet", "--short", "HEAD"])
+  const branch = git(["symbolic-ref", "--quiet", "--short", "HEAD"]);
 
   if (!options.dryRun && branch !== "main") {
-    throw new Error(`Release must run from main. Current branch: ${branch}`)
+    throw new Error(`Release must run from main. Current branch: ${branch}`);
   }
 
   if (!options.dryRun) {
-    ensureCleanWorktree()
+    ensureCleanWorktree();
   }
 
-  const anchor = findReleaseAnchor(options.fromRef)
-  const commits = getCommitsSince(anchor.ref)
+  const anchor = findReleaseAnchor(options.fromRef);
+  const commits = getCommitsSince(anchor.ref);
 
   if (commits.length === 0) {
-    throw new Error(`No commits to release since ${anchor.ref}`)
+    throw new Error(`No commits to release since ${anchor.ref}`);
   }
 
-  const bump = options.bump ?? inferVersionBump(commits)
-  const nextVersion = bumpVersion(currentVersion, bump)
-  const releaseDate = new Date().toISOString().slice(0, 10)
-  const tagName = `v${nextVersion}`
+  const bump = options.bump ?? inferVersionBump(commits);
+  const nextVersion = bumpVersion(currentVersion, bump);
+  const releaseDate = new Date().toISOString().slice(0, 10);
+  const tagName = `v${nextVersion}`;
 
   if (gitSuccess(["rev-parse", "--verify", "--quiet", tagName])) {
-    throw new Error(`Tag ${tagName} already exists`)
+    throw new Error(`Tag ${tagName} already exists`);
   }
 
-  const readme = readFileSync(readmePath, "utf8")
-  const changelog = readFileSync(changelogPath, "utf8")
-  const changedFiles = git(["diff", "--name-only", `${anchor.ref}..HEAD`])
-  const commitLog = formatCommitLog(commits)
+  const readme = readFileSync(readmePath, "utf8");
+  const changelog = readFileSync(changelogPath, "utf8");
+  const changedFiles = git(["diff", "--name-only", `${anchor.ref}..HEAD`]);
+  const commitLog = formatCommitLog(commits);
 
   const draft = await generateReleaseDraft({
     currentVersion,
@@ -94,20 +94,18 @@ async function main() {
     commitLog,
     changedFiles,
     readme,
-  })
+  });
 
-  const heading = parseReleaseHeading(draft.changelogSection)
+  const heading = parseReleaseHeading(draft.changelogSection);
 
   if (heading.version !== nextVersion) {
     throw new Error(
       `LLM returned changelog for version ${heading.version}, expected ${nextVersion}`,
-    )
+    );
   }
 
   if (heading.date !== releaseDate) {
-    throw new Error(
-      `LLM returned changelog date ${heading.date}, expected ${releaseDate}`,
-    )
+    throw new Error(`LLM returned changelog date ${heading.date}, expected ${releaseDate}`);
   }
 
   printPlan({
@@ -118,132 +116,122 @@ async function main() {
     draft,
     tagName,
     dryRun: options.dryRun,
-  })
+  });
 
   if (options.dryRun) {
-    return
+    return;
   }
 
-  packageJson.version = nextVersion
-  writeJsonFile(packageJsonPath, packageJson)
-  writeFileSync(
-    changelogPath,
-    mergeChangelog(changelog, draft.changelogSection),
-  )
+  packageJson.version = nextVersion;
+  writeJsonFile(packageJsonPath, packageJson);
+  writeFileSync(changelogPath, mergeChangelog(changelog, draft.changelogSection));
 
   if (draft.readmeAction === "replace" && draft.readmeContent.trim()) {
-    writeFileSync(readmePath, ensureTrailingNewline(draft.readmeContent))
+    writeFileSync(readmePath, ensureTrailingNewline(draft.readmeContent));
   }
 
-  run("bun", ["run", "typecheck"])
-  run("bun", ["run", "test"])
-  run("bun", ["run", "build"])
-  run("npm", ["pack", "--dry-run"])
+  run("bun", ["run", "format", "package.json", "CHANGELOG.md", "README.md"]);
+  run("bun", ["run", "typecheck"]);
+  run("bun", ["run", "test"]);
+  run("bun", ["run", "build"]);
+  run("npm", ["pack", "--dry-run"]);
 
-  git(["add", "package.json", "README.md", "CHANGELOG.md"])
-  git(["commit", "-m", `release: ${tagName}`])
-  git(["tag", tagName])
+  git(["add", "package.json", "README.md", "CHANGELOG.md"]);
+  git(["commit", "-m", `release: ${tagName}`]);
+  git(["tag", tagName]);
 
   if (!options.skipPush) {
-    git(["push", "origin", "main"])
-    git(["push", "origin", tagName])
+    git(["push", "origin", "main"]);
+    git(["push", "origin", tagName]);
   }
 
-  console.log(`Release prepared: ${tagName}`)
+  console.log(`Release prepared: ${tagName}`);
 }
 
 function ensureGitRepository() {
   if (!gitSuccess(["rev-parse", "--git-dir"])) {
-    throw new Error("Release must run inside a git repository")
+    throw new Error("Release must run inside a git repository");
   }
 }
 
 function ensureCleanWorktree() {
-  const status = git(["status", "--short"])
+  const status = git(["status", "--short"]);
 
   if (status.trim()) {
-    throw new Error("Release requires a clean worktree")
+    throw new Error("Release requires a clean worktree");
   }
 }
 
 function fetchTags() {
   if (!gitSuccess(["remote", "get-url", "origin"])) {
-    return
+    return;
   }
 
   const proc = spawnSync("git", ["fetch", "--tags", "origin"], {
     cwd,
     stdio: ["ignore", "pipe", "inherit"],
     encoding: "utf8",
-  })
+  });
 
   if (proc.status !== 0) {
-    console.warn(
-      "Warning: could not refresh tags from origin; continuing with local refs.",
-    )
+    console.warn("Warning: could not refresh tags from origin; continuing with local refs.");
   }
 }
 
-function findReleaseAnchor(fromRef?: string): ReleaseAnchor {
+function findReleaseAnchor(fromRef?: string) {
   if (fromRef) {
-    return { ref: fromRef, version: null, source: "commit" }
+    const anchor: ReleaseAnchor = { ref: fromRef, version: null, source: "commit" };
+    return anchor;
   }
 
-  const latestTag = gitOptional([
-    "describe",
-    "--tags",
-    "--abbrev=0",
-    "--match",
-    "v*",
-  ])
+  const latestTag = gitOptional(["describe", "--tags", "--abbrev=0", "--match", "v*"]);
 
   if (latestTag) {
-    return {
+    const anchor: ReleaseAnchor = {
       ref: latestTag,
       version: latestTag.replace(/^v/, ""),
       source: "tag",
-    }
+    };
+    return anchor;
   }
 
-  const log = gitOptional(["log", "--format=%H%x00%s", "-n", "200"])
+  const log = gitOptional(["log", "--format=%H%x00%s", "-n", "200"]);
 
   if (log) {
     const entries = log
       .split("\n")
       .map((line) => line.trim())
-      .filter(Boolean)
+      .filter(Boolean);
 
     for (const entry of entries) {
-      const [hash, subject] = entry.split("\0")
+      const [hash, subject] = entry.split("\0");
 
       if (!hash || !subject) {
-        continue
+        continue;
       }
 
-      const match = subject.match(/\bv([0-9]+\.[0-9]+\.[0-9]+)\b/)
+      const match = subject.match(/\bv([0-9]+\.[0-9]+\.[0-9]+)\b/);
 
       if (match) {
-        return { ref: hash, version: match[1], source: "commit" }
+        const anchor: ReleaseAnchor = { ref: hash, version: match[1], source: "commit" };
+        return anchor;
       }
     }
   }
 
-  return {
+  const anchor: ReleaseAnchor = {
     ref: git(["rev-list", "--max-parents=0", "HEAD"]).split("\n")[0],
     version: null,
     source: "root",
-  }
+  };
+  return anchor;
 }
 
-function getCommitsSince(ref: string): CommitEntry[] {
-  const raw = gitOptional([
-    "log",
-    `${ref}..HEAD`,
-    "--format=%H%x00%s%x00%b%x00---END---",
-  ])
+function getCommitsSince(ref: string) {
+  const raw = gitOptional(["log", `${ref}..HEAD`, "--format=%H%x00%s%x00%b%x00---END---"]);
 
   if (!raw) {
-    return []
+    return [];
   }
 
   return raw
@@ -251,52 +239,46 @@ function getCommitsSince(ref: string): CommitEntry[] {
     .map((chunk) => chunk.trim())
     .filter(Boolean)
     .map((chunk) => {
-      const [hash = "", subject = "", body = ""] = chunk.split("\0")
+      const [hash = "", subject = "", body = ""] = chunk.split("\0");
       return {
         hash: hash.trim(),
         subject: subject.trim(),
         body: body.trim(),
-      }
+      };
     })
-    .filter((entry) => entry.hash && entry.subject)
+    .filter((entry) => entry.hash && entry.subject);
 }
 
-function formatCommitLog(commits: CommitEntry[]): string {
+function formatCommitLog(commits: CommitEntry[]) {
   return commits
     .map((commit) => {
-      const body = commit.body ? `\n${indent(commit.body, "  ")}` : ""
-      return `- ${commit.subject} (${commit.hash.slice(0, 7)})${body}`
+      const body = commit.body ? `\n${indent(commit.body, "  ")}` : "";
+      return `- ${commit.subject} (${commit.hash.slice(0, 7)})${body}`;
     })
-    .join("\n")
+    .join("\n");
 }
 
-function indent(value: string, prefix: string): string {
+function indent(value: string, prefix: string) {
   return value
     .split(/\r?\n/)
     .map((line) => `${prefix}${line}`)
-    .join("\n")
+    .join("\n");
 }
 
 async function generateReleaseDraft(input: {
-  currentVersion: string
-  nextVersion: string
-  releaseDate: string
-  bump: VersionBump
-  anchor: ReleaseAnchor
-  commitLog: string
-  changedFiles: string
-  readme: string
-}): Promise<ReleaseDraft> {
+  currentVersion: string;
+  nextVersion: string;
+  releaseDate: string;
+  bump: VersionBump;
+  anchor: ReleaseAnchor;
+  commitLog: string;
+  changedFiles: string;
+  readme: string;
+}) {
   const schema = {
     type: "object",
     additionalProperties: false,
-    required: [
-      "releaseSummary",
-      "highlights",
-      "changelogSection",
-      "readmeAction",
-      "readmeSummary",
-    ],
+    required: ["releaseSummary", "highlights", "changelogSection", "readmeAction", "readmeSummary"],
     properties: {
       releaseSummary: { type: "string" },
       highlights: {
@@ -311,22 +293,22 @@ async function generateReleaseDraft(input: {
       },
       readmeSummary: { type: "string" },
     },
-  }
+  };
 
-  const prompt = buildReleasePrompt(input)
-  const provider = getLlmProvider()
-  let planDraft: ReleasePlanDraft
+  const prompt = buildReleasePrompt(input);
+  const provider = getLlmProvider();
+  let planDraft: ReleasePlanDraft;
 
   switch (provider) {
     case "codex":
-      planDraft = await runCodex(prompt, schema)
-      break
+      planDraft = await runCodex(prompt, schema);
+      break;
     case "claude":
-      planDraft = await runClaude(prompt, schema)
-      break
+      planDraft = await runClaude(prompt, schema);
+      break;
     case "command":
-      planDraft = await runCustomCommand(prompt)
-      break
+      planDraft = await runCustomCommand(prompt);
+      break;
   }
 
   if (planDraft.readmeAction === "replace") {
@@ -339,29 +321,29 @@ async function generateReleaseDraft(input: {
       changedFiles: input.changedFiles,
       releaseSummary: planDraft.releaseSummary,
       highlights: planDraft.highlights,
-    })
+    });
 
     return {
       ...planDraft,
       readmeContent,
-    }
+    };
   }
 
   return {
     ...planDraft,
     readmeContent: "",
-  }
+  };
 }
 
 function buildReleasePrompt(input: {
-  currentVersion: string
-  nextVersion: string
-  releaseDate: string
-  bump: VersionBump
-  anchor: ReleaseAnchor
-  commitLog: string
-  changedFiles: string
-}): string {
+  currentVersion: string;
+  nextVersion: string;
+  releaseDate: string;
+  bump: VersionBump;
+  anchor: ReleaseAnchor;
+  commitLog: string;
+  changedFiles: string;
+}) {
   return [
     "You are preparing a release draft for the npm package @goodit/evals.",
     "Use only the commit log, changed-file list, and release metadata provided here.",
@@ -391,19 +373,19 @@ function buildReleasePrompt(input: {
     "",
     "Changed files since the baseline ref:",
     input.changedFiles || "(none)",
-  ].join("\n")
+  ].join("\n");
 }
 
 async function generateReadmeRewrite(input: {
-  currentReadme: string
-  currentVersion: string
-  nextVersion: string
-  releaseDate: string
-  commitLog: string
-  changedFiles: string
-  releaseSummary: string
-  highlights: string[]
-}): Promise<string> {
+  currentReadme: string;
+  currentVersion: string;
+  nextVersion: string;
+  releaseDate: string;
+  commitLog: string;
+  changedFiles: string;
+  releaseSummary: string;
+  highlights: string[];
+}) {
   const schema = {
     type: "object",
     additionalProperties: false,
@@ -411,7 +393,7 @@ async function generateReadmeRewrite(input: {
     properties: {
       readmeContent: { type: "string" },
     },
-  }
+  };
 
   const prompt = [
     "Rewrite README.md for the next release of @goodit/evals.",
@@ -434,39 +416,39 @@ async function generateReadmeRewrite(input: {
     "",
     "Current README.md:",
     input.currentReadme,
-  ].join("\n")
+  ].join("\n");
 
-  const provider = getLlmProvider()
+  const provider = getLlmProvider();
 
   switch (provider) {
     case "codex":
-      return validateReadmeRewrite(await runCodex(prompt, schema))
+      return validateReadmeRewrite(await runCodex(prompt, schema));
     case "claude":
-      return validateReadmeRewrite(await runClaude(prompt, schema))
+      return validateReadmeRewrite(await runClaude(prompt, schema));
     case "command":
-      return validateReadmeRewrite(await runCustomCommand(prompt))
+      return validateReadmeRewrite(await runCustomCommand(prompt));
   }
 }
 
-function getLlmProvider(): LlmProvider {
-  const value = process.env.GOODIT_RELEASE_LLM_PROVIDER?.trim() ?? "codex"
+function getLlmProvider() {
+  const value = process.env.GOODIT_RELEASE_LLM_PROVIDER?.trim() ?? "codex";
 
   if (value === "codex" || value === "claude" || value === "command") {
-    return value
+    return value satisfies LlmProvider;
   }
 
   throw new Error(
     `Unsupported GOODIT_RELEASE_LLM_PROVIDER: ${value}. Use codex, claude, or command.`,
-  )
+  );
 }
 
-async function runCodex(prompt: string, schema: object): Promise<any> {
-  const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-codex-"))
-  const schemaPath = join(tempDir, "schema.json")
-  const outputPath = join(tempDir, "output.json")
+async function runCodex(prompt: string, schema: object) {
+  const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-codex-"));
+  const schemaPath = join(tempDir, "schema.json");
+  const outputPath = join(tempDir, "output.json");
 
   try {
-    writeFileSync(schemaPath, JSON.stringify(schema, null, 2))
+    writeFileSync(schemaPath, JSON.stringify(schema, null, 2));
 
     const command = [
       "codex",
@@ -483,12 +465,12 @@ async function runCodex(prompt: string, schema: object): Promise<any> {
       outputPath,
       "--color",
       "never",
-    ]
+    ];
 
-    const model = process.env.GOODIT_RELEASE_LLM_MODEL?.trim()
+    const model = process.env.GOODIT_RELEASE_LLM_MODEL?.trim();
 
     if (model) {
-      command.push("--model", model)
+      command.push("--model", model);
     }
 
     const proc = spawnSync(command[0]!, command.slice(1), {
@@ -497,28 +479,26 @@ async function runCodex(prompt: string, schema: object): Promise<any> {
       stdio: ["pipe", "inherit", "inherit"],
       encoding: "utf8",
       timeout: getLlmTimeoutMs(),
-    })
+    });
 
     if (proc.error?.name === "TimeoutError" || proc.signal) {
       throw new Error(
         `Codex release draft timed out or was terminated (${proc.signal ?? "timeout"})`,
-      )
+      );
     }
 
     if (proc.status !== 0) {
-      throw new Error(`Codex exited with code ${proc.status}`)
+      throw new Error(`Codex exited with code ${proc.status}`);
     }
 
-    return validateReleasePlan(
-      parseJsonPayload(readFileSync(outputPath, "utf8")),
-    )
+    return validateReleasePlan(parseJsonPayload(readFileSync(outputPath, "utf8")));
   } finally {
-    rmSync(tempDir, { recursive: true, force: true })
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
-async function runClaude(prompt: string, schema: object): Promise<any> {
-  const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-claude-"))
+async function runClaude(prompt: string, schema: object) {
+  const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-claude-"));
   const command = [
     "claude",
     "-p",
@@ -530,12 +510,12 @@ async function runClaude(prompt: string, schema: object): Promise<any> {
     "",
     "--json-schema",
     JSON.stringify(schema),
-  ]
+  ];
 
-  const model = process.env.GOODIT_RELEASE_LLM_MODEL?.trim()
+  const model = process.env.GOODIT_RELEASE_LLM_MODEL?.trim();
 
   if (model) {
-    command.push("--model", model)
+    command.push("--model", model);
   }
 
   try {
@@ -545,31 +525,31 @@ async function runClaude(prompt: string, schema: object): Promise<any> {
       stdio: ["pipe", "pipe", "inherit"],
       encoding: "utf8",
       timeout: getLlmTimeoutMs(),
-    })
+    });
 
     if (proc.error?.name === "TimeoutError" || proc.signal) {
       throw new Error(
         `Claude release draft timed out or was terminated (${proc.signal ?? "timeout"})`,
-      )
+      );
     }
 
     if (proc.status !== 0) {
-      throw new Error(`Claude exited with code ${proc.status}`)
+      throw new Error(`Claude exited with code ${proc.status}`);
     }
 
-    return parseClaudeJsonPayload(proc.stdout ?? "")
+    return parseClaudeJsonPayload(proc.stdout ?? "");
   } finally {
-    rmSync(tempDir, { recursive: true, force: true })
+    rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
-async function runCustomCommand(prompt: string): Promise<any> {
-  const llmCommand = process.env.GOODIT_RELEASE_LLM_COMMAND?.trim()
+async function runCustomCommand(prompt: string) {
+  const llmCommand = process.env.GOODIT_RELEASE_LLM_COMMAND?.trim();
 
   if (!llmCommand) {
     throw new Error(
       "GOODIT_RELEASE_LLM_COMMAND is required when GOODIT_RELEASE_LLM_PROVIDER=command",
-    )
+    );
   }
 
   const proc = spawnSync("sh", ["-lc", llmCommand], {
@@ -578,74 +558,69 @@ async function runCustomCommand(prompt: string): Promise<any> {
     stdio: ["pipe", "pipe", "inherit"],
     encoding: "utf8",
     timeout: getLlmTimeoutMs(),
-  })
+  });
 
   if (proc.error?.name === "TimeoutError" || proc.signal) {
-    throw new Error(
-      `Custom LLM command timed out or was terminated (${proc.signal ?? "timeout"})`,
-    )
+    throw new Error(`Custom LLM command timed out or was terminated (${proc.signal ?? "timeout"})`);
   }
 
   if (proc.status !== 0) {
-    throw new Error(`Custom LLM command exited with code ${proc.status}`)
+    throw new Error(`Custom LLM command exited with code ${proc.status}`);
   }
 
-  return parseJsonPayload(proc.stdout ?? "")
+  return parseJsonPayload(proc.stdout ?? "");
 }
 
-function parseJsonPayload(raw: string): any {
-  const trimmed = raw.trim()
-  const direct = tryParseJson(trimmed)
+function parseJsonPayload(raw: string) {
+  const trimmed = raw.trim();
+  const direct = tryParseJson(trimmed);
 
   if (direct) {
-    return direct
+    return direct;
   }
 
-  const wrapper = tryParseJson(trimmed.replace(/^[^{]*/, ""))
+  const wrapper = tryParseJson(trimmed.replace(/^[^{]*/, ""));
 
   if (wrapper) {
     if (typeof wrapper.result === "string") {
-      const nested = tryParseJson(wrapper.result.trim())
+      const nested = tryParseJson(wrapper.result.trim());
 
       if (nested) {
-        return nested
+        return nested;
       }
     }
 
-    return wrapper
+    return wrapper;
   }
 
-  throw new Error(`Could not parse LLM output as JSON:\n${trimmed}`)
+  throw new Error(`Could not parse LLM output as JSON:\n${trimmed}`);
 }
 
-function parseClaudeJsonPayload(raw: string): any {
-  const payload = parseJsonPayload(raw)
+function parseClaudeJsonPayload(raw: string) {
+  const payload = parseJsonPayload(raw);
 
   if (payload && typeof payload === "object") {
-    if (
-      payload.structured_output &&
-      typeof payload.structured_output === "object"
-    ) {
-      return payload.structured_output
+    if (payload.structured_output && typeof payload.structured_output === "object") {
+      return payload.structured_output;
     }
 
     if (typeof payload.result === "string" && payload.result.trim()) {
-      return parseJsonPayload(payload.result)
+      return parseJsonPayload(payload.result);
     }
   }
 
-  return payload
+  return payload;
 }
 
-function tryParseJson(value: string): any {
+function tryParseJson(value: string) {
   try {
-    return JSON.parse(value)
+    return JSON.parse(value);
   } catch {
-    return null
+    return null;
   }
 }
 
-function validateReleasePlan(value: any): ReleasePlanDraft {
+function validateReleasePlan(value: any) {
   if (
     !value ||
     typeof value.releaseSummary !== "string" ||
@@ -654,9 +629,7 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
     (value.readmeAction !== "unchanged" && value.readmeAction !== "replace") ||
     typeof value.readmeSummary !== "string"
   ) {
-    throw new Error(
-      `Invalid release draft payload: ${JSON.stringify(value, null, 2)}`,
-    )
+    throw new Error(`Invalid release draft payload: ${JSON.stringify(value, null, 2)}`);
   }
 
   return {
@@ -665,125 +638,113 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
     changelogSection: ensureTrailingNewline(value.changelogSection.trim()),
     readmeAction: value.readmeAction,
     readmeSummary: value.readmeSummary,
-  }
+  };
 }
 
-function validateReadmeRewrite(value: any): string {
-  if (
-    !value ||
-    typeof value.readmeContent !== "string" ||
-    !value.readmeContent.trim()
-  ) {
-    throw new Error(
-      `Invalid README rewrite payload: ${JSON.stringify(value, null, 2)}`,
-    )
+function validateReadmeRewrite(value: any) {
+  if (!value || typeof value.readmeContent !== "string" || !value.readmeContent.trim()) {
+    throw new Error(`Invalid README rewrite payload: ${JSON.stringify(value, null, 2)}`);
   }
 
-  return ensureTrailingNewline(value.readmeContent.trim())
+  return ensureTrailingNewline(value.readmeContent.trim());
 }
 
 function printPlan(input: {
-  anchor: ReleaseAnchor
-  bump: VersionBump
-  currentVersion: string
-  nextVersion: string
-  tagName: string
-  dryRun: boolean
-  draft: ReleaseDraft
+  anchor: ReleaseAnchor;
+  bump: VersionBump;
+  currentVersion: string;
+  nextVersion: string;
+  tagName: string;
+  dryRun: boolean;
+  draft: ReleaseDraft;
 }) {
-  console.log(
-    `${input.dryRun ? "Dry run" : "Preparing release"} ${input.tagName}`,
-  )
-  console.log(`Current version: ${input.currentVersion}`)
-  console.log(`Bump: ${input.bump}`)
+  console.log(`${input.dryRun ? "Dry run" : "Preparing release"} ${input.tagName}`);
+  console.log(`Current version: ${input.currentVersion}`);
+  console.log(`Bump: ${input.bump}`);
   console.log(
     `Baseline: ${input.anchor.ref} (${input.anchor.source}${input.anchor.version ? `, version ${input.anchor.version}` : ""})`,
-  )
-  console.log("")
-  console.log(input.draft.releaseSummary)
+  );
+  console.log("");
+  console.log(input.draft.releaseSummary);
 
   if (input.draft.highlights.length > 0) {
-    console.log("")
+    console.log("");
 
     for (const item of input.draft.highlights) {
-      console.log(`- ${item}`)
+      console.log(`- ${item}`);
     }
   }
 
-  console.log("")
-  console.log(
-    "README action:",
-    input.draft.readmeAction,
-    `(${input.draft.readmeSummary})`,
-  )
-  console.log("")
-  console.log(input.draft.changelogSection.trim())
+  console.log("");
+  console.log("README action:", input.draft.readmeAction, `(${input.draft.readmeSummary})`);
+  console.log("");
+  console.log(input.draft.changelogSection.trim());
 }
 
-function git(args: string[]): string {
-  return run("git", args)
+function git(args: string[]) {
+  return run("git", args);
 }
 
-function gitOptional(args: string[]): string {
+function gitOptional(args: string[]) {
   const proc = spawnSync("git", args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
     encoding: "utf8",
-  })
+  });
 
   if (proc.status !== 0) {
-    return ""
+    return "";
   }
 
-  return (proc.stdout ?? "").trim()
+  return (proc.stdout ?? "").trim();
 }
 
-function gitSuccess(args: string[]): boolean {
+function gitSuccess(args: string[]) {
   const proc = spawnSync("git", args, {
     cwd,
     stdio: ["ignore", "ignore", "ignore"],
-  })
-  return proc.status === 0
+  });
+  return proc.status === 0;
 }
 
-function run(bin: string, args: string[]): string {
+function run(bin: string, args: string[]) {
   const proc = spawnSync(bin, args, {
     cwd,
     stdio: ["ignore", "pipe", "inherit"],
     encoding: "utf8",
-  })
+  });
 
   if (proc.status !== 0) {
-    throw new Error(`Command failed: ${bin} ${args.join(" ")}`)
+    throw new Error(`Command failed: ${bin} ${args.join(" ")}`);
   }
 
-  return (proc.stdout ?? "").trim()
+  return (proc.stdout ?? "").trim();
 }
 
-function readJsonFile(path: string): unknown {
-  return JSON.parse(readFileSync(path, "utf8"))
+function readJsonFile(path: string) {
+  return JSON.parse(readFileSync(path, "utf8"));
 }
 
 function writeJsonFile(path: string, value: unknown) {
-  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`)
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function ensureTrailingNewline(value: string): string {
-  return value.endsWith("\n") ? value : `${value}\n`
+function ensureTrailingNewline(value: string) {
+  return value.endsWith("\n") ? value : `${value}\n`;
 }
 
-function getLlmTimeoutMs(): number {
-  const raw = process.env.GOODIT_RELEASE_LLM_TIMEOUT_MS?.trim()
-  const parsed = raw ? Number(raw) : Number.NaN
+function getLlmTimeoutMs() {
+  const raw = process.env.GOODIT_RELEASE_LLM_TIMEOUT_MS?.trim();
+  const parsed = raw ? Number(raw) : Number.NaN;
 
   if (Number.isFinite(parsed) && parsed > 0) {
-    return parsed
+    return parsed;
   }
 
-  return 60000
+  return 60000;
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error))
-  process.exit(1)
-})
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

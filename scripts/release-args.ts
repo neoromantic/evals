@@ -1,48 +1,48 @@
-import type { VersionBump } from "./release-lib"
+import type { VersionBump } from "./release-lib";
 
 export interface ReleaseOptions {
-  dryRun: boolean
-  skipPush: boolean
-  bump?: VersionBump
-  fromRef?: string
+  dryRun: boolean;
+  skipPush: boolean;
+  bump?: VersionBump;
+  fromRef?: string;
 }
 
-export function parseReleaseArgs(argv: string[]): ReleaseOptions {
+export function parseReleaseArgs(argv: string[]) {
   const options: ReleaseOptions = {
     dryRun: false,
     skipPush: false,
-  }
+  };
 
   for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
+    const arg = argv[index];
 
     switch (arg) {
       case "--dry-run":
-        options.dryRun = true
-        break
+        options.dryRun = true;
+        break;
       case "--skip-push":
-        options.skipPush = true
-        break
+        options.skipPush = true;
+        break;
       case "--bump":
-        index += 1
-        options.bump = parseReleaseBump(argv[index])
-        break
+        index += 1;
+        options.bump = parseReleaseBump(argv[index]);
+        break;
       case "--from-ref":
-        index += 1
-        options.fromRef = argv[index]
-        break
+        index += 1;
+        options.fromRef = argv[index];
+        break;
       default:
-        throw new Error(`Unknown argument: ${arg}`)
+        throw new Error(`Unknown argument: ${arg}`);
     }
   }
 
-  return options
+  return options;
 }
 
-function parseReleaseBump(value: string | undefined): VersionBump {
+function parseReleaseBump(value: string | undefined) {
   if (value === "patch" || value === "minor" || value === "major") {
-    return value
+    return value;
   }
 
-  throw new Error(`Invalid --bump value: ${value ?? "<missing>"}`)
+  throw new Error(`Invalid --bump value: ${value ?? "<missing>"}`);
 }

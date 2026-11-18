@@ -184,17 +184,17 @@ Interactive selector shortcuts:
 
 ```ts
 // examples/capitals.ts
-import { openai } from "@ai-sdk/openai"
-import { traceModel } from "@goodit/evals"
-import { generateText } from "ai"
+import { openai } from "@ai-sdk/openai";
+import { traceModel } from "@goodit/evals";
+import { generateText } from "ai";
 
 export async function getCapital(country: string): Promise<string> {
   const { text } = await generateText({
     model: traceModel(openai("gpt-4o-mini")),
     prompt: `What is the capital of ${country}? Answer with just the city name.`,
-  })
+  });
 
-  return text.trim()
+  return text.trim();
 }
 ```
 
@@ -202,8 +202,8 @@ export async function getCapital(country: string): Promise<string> {
 
 ```ts
 // examples/capitals.eval.ts
-import { ExactMatch, evalSuite } from "@goodit/evals"
-import { getCapital } from "./capitals"
+import { ExactMatch, evalSuite } from "@goodit/evals";
+import { getCapital } from "./capitals";
 
 evalSuite("Country Capitals", {
   data: () => [
@@ -214,7 +214,7 @@ evalSuite("Country Capitals", {
   task: async (input: string) => await getCapital(input),
   scorers: [ExactMatch],
   passThreshold: 0.8,
-})
+});
 ```
 
 ### 3. Run it
@@ -260,8 +260,8 @@ evalSuite(name: string, config: {
   name?: string // Optional explicit test label in reports/output
   input: TInput
   expected?: TExpected
-  weight?: number
-  only?: boolean
+  weight?: number // default 1
+  only?: boolean // when any case sets it, only those cases run
 }
 ```
 
@@ -280,7 +280,7 @@ Describe what a good answer says, and let an LLM judge each fact against the
 output. Leave out `scorers`:
 
 ```ts
-import { evalSuite, Facts } from "@goodit/evals"
+import { evalSuite, Facts } from "@goodit/evals";
 
 evalSuite("Refund replies", {
   data: () => [
@@ -293,7 +293,7 @@ evalSuite("Refund replies", {
     },
   ],
   task: async (input: string) => draftReply(input),
-})
+});
 ```
 
 - Each fact gets a 0..1 score from the judge model; the case records their
@@ -316,10 +316,10 @@ evalSuite.each([
   data: () => [{ input: "France", expected: "Paris" }],
   task: async (input, variant) => {
     // variant-aware task
-    return input
+    return input;
   },
   scorers: [ExactMatch],
-})
+});
 ```
 
 Each variant gets separate suite metrics and baseline entries.
@@ -334,9 +334,9 @@ const scorer = createScorer({
     return {
       score: 0.9,
       metadata: { reason: "diagnostics" },
-    }
+    };
   },
-})
+});
 ```
 
 Return forms supported:
@@ -353,11 +353,14 @@ Scorers have an optional `kind` field (`"heuristic" | "judge"`):
 const myScorer = createScorer({
   name: "MyLLMScorer",
   kind: "judge",
-  scorer: async ({ output }) => { /* ... */ },
-})
+  scorer: async ({ output }) => {
+    /* ... */
+  },
+});
 ```
 
 `kind: "judge"` enables:
+
 - `[judge]` badge in verbose reports
 - Token/latency phase separation in `evalSuite`
 
@@ -372,15 +375,15 @@ Use imperative APIs when eval flow does not fit `evalSuite`.
 
 ```ts
 const { result } = await measure(async (m) => {
-  m.weight(0.9) // optional, default 1
-  m.metric("ttfb", 420, "ms")
+  m.weight(0.9); // optional, default 1
+  m.metric("ttfb", 420, "ms");
   m.tokens({
     promptTokens: 120,
     completionTokens: 80,
-  })
-  m.score("completeness", 0.95)
-  return "ok"
-})
+  });
+  m.score("completeness", 0.95);
+  return "ok";
+});
 ```
 
 Context methods:
@@ -401,16 +404,16 @@ Context methods:
 
 Built-in aggregate keys are inferred by metric name:
 
-| Metric pattern | Aggregates |
-| --- | --- |
-| `latency`, `ttfb*` | `.sum`, `.avg` |
+| Metric pattern                     | Aggregates                                     |
+| ---------------------------------- | ---------------------------------------------- |
+| `latency`, `ttfb*`                 | `.sum`, `.avg`                                 |
 | `latency.scoring`, `latency.total` | `.sum`, `.avg`, `.min`, `.max`, `.p50`, `.p95` |
-| `throughput*` | `.avg` |
-| `tokens.*` | `.sum` |
-| `tokens.scorer.*` | `.sum`, `.avg`, `.min`, `.max`, `.p50`, `.p95` |
-| `score.*` | `.avg`, `.min` |
-| `error` | `.count`, `.rate` |
-| always | `test.count`, `test.pass_rate` |
+| `throughput*`                      | `.avg`                                         |
+| `tokens.*`                         | `.sum`                                         |
+| `tokens.scorer.*`                  | `.sum`, `.avg`, `.min`, `.max`, `.p50`, `.p95` |
+| `score.*`                          | `.avg`, `.min`                                 |
+| `error`                            | `.count`, `.rate`                              |
+| always                             | `test.count`, `test.pass_rate`                 |
 
 Weight behavior:
 
@@ -453,7 +456,7 @@ When using `measure()` directly, call `m.taskEnd()` before running scorers to en
 Model-agnostic wrapper for LLM-based scoring with retry logic:
 
 ```ts
-import { createLLMJudgeScorer } from "@goodit/evals"
+import { createLLMJudgeScorer } from "@goodit/evals";
 
 const ToneScorer = createLLMJudgeScorer({
   name: "ToneCheck",
@@ -463,16 +466,17 @@ const ToneScorer = createLLMJudgeScorer({
       model: myModel,
       schema: z.object({ score: z.number(), rationale: z.string() }),
       prompt: `Rate the professionalism of: ${output}`,
-    })
-    return { score: result.object.score, metadata: result.object }
+    });
+    return { score: result.object.score, metadata: result.object };
   },
-  retries: 2,        // default: 2
+  retries: 2, // default: 2
   retryDelayMs: 1000, // default: 1000 (exponential backoff)
-  errorScore: 0,     // default: 0 (score on exhausted retries)
-})
+  errorScore: 0, // default: 0 (score on exhausted retries)
+});
 ```
 
 All LLM judge scorers automatically get `kind: "judge"`, which:
+
 - Shows `[judge]` badge in verbose scorer details
 - Separates scorer tokens into `tokens.scorer.*` metrics
 - Separates scorer latency into `latency.scoring`
@@ -482,15 +486,15 @@ All LLM judge scorers automatically get `kind: "judge"`, which:
 Adapter for [autoevals](https://github.com/braintrustdata/autoevals) functions:
 
 ```ts
-import { wrapAutoeval } from "@goodit/evals"
-import { Factuality } from "autoevals"
+import { wrapAutoeval } from "@goodit/evals";
+import { Factuality } from "autoevals";
 
 const FactualityScorer = wrapAutoeval({
   name: "Factuality",
   description: "LLM judge: factual consistency",
   autoeval: Factuality,
-  normalizeScore: (raw) => raw >= 0.6 ? 1 : 0,
-})
+  normalizeScore: (raw) => (raw >= 0.6 ? 1 : 0),
+});
 ```
 
 ### Semantic Helpers
@@ -498,16 +502,16 @@ const FactualityScorer = wrapAutoeval({
 Built-in LLM judge scorers using AI SDK `generateObject`. Require `ai` and `zod` peer dependencies.
 
 ```ts
-import { SemanticMatch, MatchesIntent, SemanticContains } from "@goodit/evals"
+import { SemanticMatch, MatchesIntent, SemanticContains } from "@goodit/evals";
 
 // Semantic similarity between output and expected
-const similarity = SemanticMatch({ model: myModel, threshold: 0.7 })
+const similarity = SemanticMatch({ model: myModel, threshold: 0.7 });
 
 // Check if output matches a stated intent
-const intentCheck = MatchesIntent({ model: myModel, intent: "Provides a helpful greeting" })
+const intentCheck = MatchesIntent({ model: myModel, intent: "Provides a helpful greeting" });
 
 // Check if output contains specific concepts
-const conceptCheck = SemanticContains({ model: myModel, concepts: ["price", "availability"] })
+const conceptCheck = SemanticContains({ model: myModel, concepts: ["price", "availability"] });
 ```
 
 ## Trace and Tokens
@@ -628,32 +632,32 @@ Direction defaults:
 
 Default tolerances used when baseline entry is a plain number:
 
-| Metric pattern | Default tolerance |
-| --- | --- |
-| `latency*`, `ttfb*` | `0.20` |
-| `latency.scoring*`, `latency.total*` | `0.20` |
-| `tokens.*` | `0.10` |
-| `tokens.scorer.*` | `0.10` |
-| `score.*` | `0.05` |
-| `throughput*` | `0.15` |
-| `error*` | `0.00` |
-| `test.pass_rate` | `0.05` |
-| `test.count` | `0.00` |
-| other metrics | `0.10` |
+| Metric pattern                       | Default tolerance |
+| ------------------------------------ | ----------------- |
+| `latency*`, `ttfb*`                  | `0.20`            |
+| `latency.scoring*`, `latency.total*` | `0.20`            |
+| `tokens.*`                           | `0.10`            |
+| `tokens.scorer.*`                    | `0.10`            |
+| `score.*`                            | `0.05`            |
+| `throughput*`                        | `0.15`            |
+| `error*`                             | `0.00`            |
+| `test.pass_rate`                     | `0.05`            |
+| `test.count`                         | `0.00`            |
+| other metrics                        | `0.10`            |
 
 ## Metric Naming Conventions
 
 Use consistent names so aggregation and baseline comparison behave as expected.
 
-| Category | Metric name(s) | Unit | Direction |
-| --- | --- | --- | --- |
-| Latency | `latency`, `ttfb*` | `ms` | lower |
-| Throughput | `throughput*` | custom (`items/s`, `chars/s`) | higher |
-| Tokens | `tokens.input`, `tokens.output`, `tokens.total` | count | lower |
-| Scorer Tokens | `tokens.scorer.input`, `tokens.scorer.output`, `tokens.scorer.total` | count | lower |
-| Scoring Latency | `latency.scoring`, `latency.total` | `ms` | lower |
-| Quality | `score.<name>` | `0..1` | higher |
-| Errors | `error` | `0` or `1` | lower |
+| Category        | Metric name(s)                                                       | Unit                          | Direction |
+| --------------- | -------------------------------------------------------------------- | ----------------------------- | --------- |
+| Latency         | `latency`, `ttfb*`                                                   | `ms`                          | lower     |
+| Throughput      | `throughput*`                                                        | custom (`items/s`, `chars/s`) | higher    |
+| Tokens          | `tokens.input`, `tokens.output`, `tokens.total`                      | count                         | lower     |
+| Scorer Tokens   | `tokens.scorer.input`, `tokens.scorer.output`, `tokens.scorer.total` | count                         | lower     |
+| Scoring Latency | `latency.scoring`, `latency.total`                                   | `ms`                          | lower     |
+| Quality         | `score.<name>`                                                       | `0..1`                        | higher    |
+| Errors          | `error`                                                              | `0` or `1`                    | lower     |
 
 ## LLM-based Scorers and Score Semantics
 
@@ -705,7 +709,8 @@ bun run eval         # run eval discovery + report
 bun run eval:select  # choose eval files interactively, then run them
 bun run eval:update  # run and update baselines
 bun run test         # unit/integration tests for framework
-bun run check        # typecheck + Knip (unused files and dependencies)
+bun run format       # format with oxfmt
+bun run check        # format check + oxlint + typecheck + Knip (unused files and dependencies)
 bun run build
 ```
 

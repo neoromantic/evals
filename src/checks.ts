@@ -1,19 +1,17 @@
-import { createOpenAI } from "@ai-sdk/openai"
-import { gateway, generateObject, type LanguageModel } from "ai"
-import { z } from "zod"
-import type { ScorerResult } from "./types"
+import { createOpenAI } from "@ai-sdk/openai";
+import { gateway, generateObject, type LanguageModel } from "ai";
+import { z } from "zod";
+import type { ScorerResult } from "./types";
 
 export interface FactsCheck {
-  __check: "facts"
-  facts: string[]
-  model?: LanguageModel
+  __check: "facts";
+  facts: string[];
+  model?: LanguageModel;
 }
 
-export function Facts(
-  facts: string[],
-  opts?: { model?: LanguageModel },
-): FactsCheck {
-  return { __check: "facts", facts, model: opts?.model }
+export function Facts(facts: string[], opts?: { model?: LanguageModel }) {
+  const check: FactsCheck = { __check: "facts", facts, model: opts?.model };
+  return check;
 }
 
 export function isFactsCheck(value: unknown): value is FactsCheck {
@@ -22,36 +20,31 @@ export function isFactsCheck(value: unknown): value is FactsCheck {
     value !== null &&
     "__check" in value &&
     (value as FactsCheck).__check === "facts"
-  )
+  );
 }
 
-function getDefaultJudgeModel(): LanguageModel {
+function getDefaultJudgeModel() {
   if (process.env.AI_GATEWAY_API_KEY) {
-    return gateway("openai/gpt-4o-mini")
+    return gateway("openai/gpt-4o-mini");
   }
 
   if (process.env.OPENAI_API_KEY) {
-    return createOpenAI({ apiKey: process.env.OPENAI_API_KEY })("gpt-4o-mini")
+    return createOpenAI({ apiKey: process.env.OPENAI_API_KEY })("gpt-4o-mini");
   }
 
   throw new Error(
-    "No model available for Facts() scorer. " +
-      "Set AI_GATEWAY_API_KEY or OPENAI_API_KEY.",
-  )
+    "No model available for Facts() scorer. " + "Set AI_GATEWAY_API_KEY or OPENAI_API_KEY.",
+  );
 }
 
 async function judgeFact(
   ctx: { input: unknown; output: unknown; fact: string },
   model?: LanguageModel,
-): Promise<ScorerResult> {
+) {
   const { object } = await generateObject({
     model: model ?? getDefaultJudgeModel(),
     schema: z.object({
-      score: z
-        .number()
-        .min(0)
-        .max(1)
-        .describe("How well the fact is supported, 0-1"),
+      score: z.number().min(0).max(1).describe("How well the fact is supported, 0-1"),
       rationale: z.string().describe("Brief explanation"),
     }),
     prompt: [
@@ -67,31 +60,26 @@ async function judgeFact(
       "Score 0.0 if the fact is contradicted or not supported at all.",
       "Score between 0 and 1 for partial support.",
     ].join("\n"),
-  })
+  });
 
-  return {
+  const result: ScorerResult = {
     score: object.score,
     name: ctx.fact.length > 60 ? `${ctx.fact.slice(0, 57)}...` : ctx.fact,
     metadata: { rationale: object.rationale, fact: ctx.fact },
     kind: "judge",
-  }
+  };
+  return result;
 }
 
-export async function resolveCheckScorers(
-  expected: unknown,
-  input: unknown,
-  output: unknown,
-): Promise<ScorerResult[]> {
+export async function resolveCheckScorers(expected: unknown, input: unknown, output: unknown) {
   if (isFactsCheck(expected)) {
     return Promise.all(
-      expected.facts.map((fact) =>
-        judgeFact({ input, output, fact }, expected.model),
-      ),
-    )
+      expected.facts.map((fact) => judgeFact({ input, output, fact }, expected.model)),
+    );
   }
 
   throw new Error(
     "Cannot derive scorers: expected is not a recognized check type. " +
       "Use Facts([...]) or provide explicit scorers.",
-  )
+  );
 }

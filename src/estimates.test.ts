@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test"
-import { buildEvalEstimate, summarizeEvalEstimates } from "./estimates"
-import type { BaselineFile } from "./types"
+import { describe, expect, test } from "bun:test";
+import { buildEvalEstimate, summarizeEvalEstimates } from "./estimates";
+import type { BaselineFile } from "./types";
 
 describe("buildEvalEstimate", () => {
   test("builds a single-suite estimate from legacy aggregate data", () => {
@@ -15,7 +15,7 @@ describe("buildEvalEstimate", () => {
         "tokens.total.sum": 180,
         "test.count": 3,
       },
-    }
+    };
 
     expect(buildEvalEstimate("/tmp/legacy.eval.ts", baseline)).toMatchObject({
       hasBaseline: true,
@@ -38,8 +38,8 @@ describe("buildEvalEstimate", () => {
           },
         },
       ],
-    })
-  })
+    });
+  });
 
   test("sums suite estimates and combines task and scorer tokens", () => {
     const baseline: BaselineFile = {
@@ -68,7 +68,7 @@ describe("buildEvalEstimate", () => {
           },
         },
       },
-    }
+    };
 
     expect(buildEvalEstimate("/tmp/multi.eval.ts", baseline)).toMatchObject({
       hasBaseline: true,
@@ -82,8 +82,8 @@ describe("buildEvalEstimate", () => {
         output: 15,
         total: 195,
       },
-    })
-  })
+    });
+  });
 
   test("returns an empty estimate when no baseline exists", () => {
     expect(buildEvalEstimate("/tmp/missing.eval.ts", null)).toMatchObject({
@@ -95,9 +95,9 @@ describe("buildEvalEstimate", () => {
       tokens: {
         total: null,
       },
-    })
-  })
-})
+    });
+  });
+});
 
 describe("summarizeEvalEstimates", () => {
   test("sums only known baseline estimates and tracks missing entries", () => {
@@ -153,7 +153,7 @@ describe("summarizeEvalEstimates", () => {
           total: 30,
         },
       },
-    ])
+    ]);
 
     expect(summary).toEqual({
       selectedCount: 3,
@@ -167,6 +167,6 @@ describe("summarizeEvalEstimates", () => {
         output: 15,
         total: 45,
       },
-    })
-  })
-})
+    });
+  });
+});
