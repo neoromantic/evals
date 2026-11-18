@@ -1,11 +1,11 @@
-import { parseCliArgs, runCli } from "./cli"
+import { parseCliArgs, runCli } from "./cli";
 
 async function main(): Promise<void> {
-  const args = process.argv.slice(2)
-  const { jsonOutput } = parseCliArgs(args)
+  const args = process.argv.slice(2);
+  const { jsonOutput } = parseCliArgs(args);
 
   try {
-    process.exit(await runCli(args))
+    process.exit(await runCli(args));
   } catch (error) {
     if (jsonOutput) {
       console.log(
@@ -19,13 +19,13 @@ async function main(): Promise<void> {
           null,
           2,
         ),
-      )
+      );
     } else {
-      console.error("Eval runner failed:", error)
+      console.error("Eval runner failed:", error);
     }
 
-    process.exit(1)
+    process.exit(1);
   }
 }
 
-void main()
+void main();

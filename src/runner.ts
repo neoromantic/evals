@@ -1,134 +1,123 @@
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeSync,
-} from "node:fs"
-import { tmpdir } from "node:os"
-import { join, relative, resolve } from "node:path"
-import { Glob } from "bun"
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative, resolve } from "node:path";
+import { Glob } from "bun";
 
-export const MIN_BUN_VERSION_FOR_CONCURRENT_CASES = "1.3.9"
-const DOTENV_FILENAMES = [".env", ".env.local"] as const
+export const MIN_BUN_VERSION_FOR_CONCURRENT_CASES = "1.3.9";
+const DOTENV_FILENAMES = [".env", ".env.local"] as const;
 
 export interface RunEvalFilesOptions {
-  cwd: string
-  evalFiles: string[]
-  bunArgs: string[]
-  verboseReporting: boolean
-  jsonOutput: boolean
+  cwd: string;
+  evalFiles: string[];
+  bunArgs: string[];
+  verboseReporting: boolean;
+  jsonOutput: boolean;
 }
 
 // Write all of `text` to stdout before returning. When stdout is a pipe,
 // console.log and Bun.write can stop after 64 KiB (or repeat the first
 // chunk) once the process exits, which broke `--json | jq` on big reports.
 function writeStdoutSync(text: string): void {
-  const buffer = Buffer.from(text)
-  let offset = 0
+  const buffer = Buffer.from(text);
+  let offset = 0;
   while (offset < buffer.length) {
     try {
-      offset += writeSync(1, buffer, offset)
+      offset += writeSync(1, buffer, offset);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EAGAIN") throw error
-      Bun.sleepSync(1)
+      if ((error as NodeJS.ErrnoException).code !== "EAGAIN") throw error;
+      Bun.sleepSync(1);
     }
   }
 }
 
 function parseVersion(version: string): [number, number, number] {
-  const [major = "0", minor = "0", patch = "0"] = version.split(".")
-  return [Number(major), Number(minor), Number(patch)]
+  const [major = "0", minor = "0", patch = "0"] = version.split(".");
+  return [Number(major), Number(minor), Number(patch)];
 }
 
 export function isVersionLessThan(version: string, minimum: string): boolean {
-  const current = parseVersion(version)
-  const target = parseVersion(minimum)
+  const current = parseVersion(version);
+  const target = parseVersion(minimum);
 
   for (let index = 0; index < 3; index += 1) {
-    const left = current[index] ?? 0
-    const right = target[index] ?? 0
-    if (left < right) return true
-    if (left > right) return false
+    const left = current[index] ?? 0;
+    const right = target[index] ?? 0;
+    if (left < right) return true;
+    if (left > right) return false;
   }
 
-  return false
+  return false;
 }
 
 export function loadDotenvEnv(cwd: string): Record<string, string> {
-  const loaded: Record<string, string> = {}
+  const loaded: Record<string, string> = {};
 
   for (const filename of DOTENV_FILENAMES) {
-    const filepath = join(cwd, filename)
+    const filepath = join(cwd, filename);
     if (!existsSync(filepath)) {
-      continue
+      continue;
     }
 
-    Object.assign(loaded, parseDotenvContent(readFileSync(filepath, "utf-8")))
+    Object.assign(loaded, parseDotenvContent(readFileSync(filepath, "utf-8")));
   }
 
-  return loaded
+  return loaded;
 }
 
 function parseDotenvContent(content: string): Record<string, string> {
-  const parsed: Record<string, string> = {}
+  const parsed: Record<string, string> = {};
 
   for (const rawLine of content.split(/\r?\n/)) {
-    const trimmed = rawLine.trim()
+    const trimmed = rawLine.trim();
     if (!trimmed || trimmed.startsWith("#")) {
-      continue
+      continue;
     }
 
-    const line = trimmed.startsWith("export ")
-      ? trimmed.slice("export ".length)
-      : trimmed
-    const separatorIndex = line.indexOf("=")
+    const line = trimmed.startsWith("export ") ? trimmed.slice("export ".length) : trimmed;
+    const separatorIndex = line.indexOf("=");
     if (separatorIndex <= 0) {
-      continue
+      continue;
     }
 
-    const key = line.slice(0, separatorIndex).trim()
+    const key = line.slice(0, separatorIndex).trim();
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key)) {
-      continue
+      continue;
     }
 
-    const rawValue = line.slice(separatorIndex + 1).trim()
-    parsed[key] = parseDotenvValue(rawValue)
+    const rawValue = line.slice(separatorIndex + 1).trim();
+    parsed[key] = parseDotenvValue(rawValue);
   }
 
-  return parsed
+  return parsed;
 }
 
 function parseDotenvValue(rawValue: string): string {
-  const quote = rawValue[0]
+  const quote = rawValue[0];
   if ((quote === '"' || quote === "'") && rawValue.endsWith(quote)) {
-    const inner = rawValue.slice(1, -1)
+    const inner = rawValue.slice(1, -1);
     if (quote === '"') {
-      return inner
-        .replaceAll("\\n", "\n")
-        .replaceAll("\\r", "\r")
-        .replaceAll('\\"', '"')
+      return inner.replaceAll("\\n", "\n").replaceAll("\\r", "\r").replaceAll('\\"', '"');
     }
-    return inner
+    return inner;
   }
 
-  return rawValue.replace(/\s+#.*$/, "").trim()
+  return rawValue.replace(/\s+#.*$/, "").trim();
 }
 
 export async function discoverEvalFiles(cwd: string): Promise<string[]> {
-  const glob = new Glob("**/*.eval.ts")
-  const evalFiles: string[] = []
+  const glob = new Glob("**/*.eval.ts");
+  const evalFiles: string[] = [];
 
   for await (const file of glob.scan({ cwd, absolute: true })) {
     if (file.includes("/node_modules/") || file.includes("\\node_modules\\")) {
-      continue
+      continue;
     }
 
-    evalFiles.push(file)
+    evalFiles.push(file);
   }
 
-  evalFiles.sort((left, right) => left.localeCompare(right))
-  return evalFiles
+  evalFiles.sort((left, right) => left.localeCompare(right));
+  return evalFiles;
 }
 
 export function buildBunTestArgs(
@@ -136,15 +125,7 @@ export function buildBunTestArgs(
   bunArgs: string[],
   preloadPath = resolve(import.meta.dir, "preload.ts"),
 ): string[] {
-  return [
-    "test",
-    "--preload",
-    preloadPath,
-    "--timeout",
-    "60000",
-    ...evalFiles,
-    ...bunArgs,
-  ]
+  return ["test", "--preload", preloadPath, "--timeout", "60000", ...evalFiles, ...bunArgs];
 }
 
 function emitNoEvalFilesFound(jsonOutput: boolean): void {
@@ -165,19 +146,19 @@ function emitNoEvalFilesFound(jsonOutput: boolean): void {
         null,
         2,
       ),
-    )
-    return
+    );
+    return;
   }
 
-  console.log("No eval files found (*.eval.ts)")
+  console.log("No eval files found (*.eval.ts)");
 }
 
 function printDiscoveredEvalFiles(cwd: string, evalFiles: string[]): void {
-  console.log(`Found ${evalFiles.length} eval file(s):`)
+  console.log(`Found ${evalFiles.length} eval file(s):`);
   for (const evalFile of evalFiles) {
-    console.log(`  ${relative(cwd, evalFile)}`)
+    console.log(`  ${relative(cwd, evalFile)}`);
   }
-  console.log()
+  console.log();
 }
 
 function appendFailureDetails(
@@ -187,7 +168,7 @@ function appendFailureDetails(
   bunStderr: string,
 ): unknown {
   if (exitCode === 0 || !payload || typeof payload !== "object") {
-    return payload
+    return payload;
   }
 
   return {
@@ -196,48 +177,37 @@ function appendFailureDetails(
     exitCode,
     bunStdout,
     bunStderr,
-  }
+  };
 }
 
-export async function runEvalFiles(
-  options: RunEvalFilesOptions,
-): Promise<number> {
-  const { cwd, evalFiles, bunArgs, verboseReporting, jsonOutput } = options
+export async function runEvalFiles(options: RunEvalFilesOptions): Promise<number> {
+  const { cwd, evalFiles, bunArgs, verboseReporting, jsonOutput } = options;
 
-  if (
-    !jsonOutput &&
-    isVersionLessThan(Bun.version, MIN_BUN_VERSION_FOR_CONCURRENT_CASES)
-  ) {
+  if (!jsonOutput && isVersionLessThan(Bun.version, MIN_BUN_VERSION_FOR_CONCURRENT_CASES)) {
     console.warn(
       `Warning: Bun ${Bun.version} detected. ` +
         `Per-case concurrent eval execution requires Bun ${MIN_BUN_VERSION_FOR_CONCURRENT_CASES}+.`,
-    )
+    );
   }
 
   if (evalFiles.length === 0) {
-    emitNoEvalFilesFound(jsonOutput)
-    return 0
+    emitNoEvalFilesFound(jsonOutput);
+    return 0;
   }
 
   if (!jsonOutput) {
-    printDiscoveredEvalFiles(cwd, evalFiles)
+    printDiscoveredEvalFiles(cwd, evalFiles);
   }
 
-  const dotenvEnv = loadDotenvEnv(cwd)
-  const args = buildBunTestArgs(evalFiles, bunArgs)
-  const jsonOutputDir = jsonOutput
-    ? mkdtempSync(join(tmpdir(), "goodit-evals-json-"))
-    : null
-  const jsonOutputPath = jsonOutputDir
-    ? join(jsonOutputDir, "eval-results.json")
-    : null
+  const dotenvEnv = loadDotenvEnv(cwd);
+  const args = buildBunTestArgs(evalFiles, bunArgs);
+  const jsonOutputDir = jsonOutput ? mkdtempSync(join(tmpdir(), "goodit-evals-json-")) : null;
+  const jsonOutputPath = jsonOutputDir ? join(jsonOutputDir, "eval-results.json") : null;
 
   try {
     const proc = Bun.spawn(["bun", ...args], {
       cwd,
-      stdio: jsonOutput
-        ? ["ignore", "pipe", "pipe"]
-        : ["inherit", "inherit", "inherit"],
+      stdio: jsonOutput ? ["ignore", "pipe", "pipe"] : ["inherit", "inherit", "inherit"],
       env: {
         ...dotenvEnv,
         ...process.env,
@@ -250,30 +220,26 @@ export async function runEvalFiles(
             }
           : {}),
       },
-    })
+    });
 
     const stdoutPromise =
-      jsonOutput && proc.stdout
-        ? new Response(proc.stdout).text()
-        : Promise.resolve("")
+      jsonOutput && proc.stdout ? new Response(proc.stdout).text() : Promise.resolve("");
     const stderrPromise =
-      jsonOutput && proc.stderr
-        ? new Response(proc.stderr).text()
-        : Promise.resolve("")
-    const exitCode = await proc.exited
+      jsonOutput && proc.stderr ? new Response(proc.stderr).text() : Promise.resolve("");
+    const exitCode = await proc.exited;
 
     if (!jsonOutput) {
-      return exitCode
+      return exitCode;
     }
 
-    const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise])
-    const bunStdout = stdout.trim()
-    const bunStderr = stderr.trim()
+    const [stdout, stderr] = await Promise.all([stdoutPromise, stderrPromise]);
+    const bunStdout = stdout.trim();
+    const bunStderr = stderr.trim();
 
-    let payload: unknown
+    let payload: unknown;
     if (jsonOutputPath && existsSync(jsonOutputPath)) {
       try {
-        payload = JSON.parse(readFileSync(jsonOutputPath, "utf-8"))
+        payload = JSON.parse(readFileSync(jsonOutputPath, "utf-8"));
       } catch (error) {
         payload = {
           generatedAt: new Date().toISOString(),
@@ -281,7 +247,7 @@ export async function runEvalFiles(
             error instanceof Error
               ? `Failed to parse JSON report: ${error.message}`
               : "Failed to parse JSON report",
-        }
+        };
       }
     } else {
       payload = {
@@ -289,16 +255,16 @@ export async function runEvalFiles(
         error: "Eval run did not produce JSON output",
         bunStdout,
         bunStderr,
-      }
+      };
     }
 
-    payload = appendFailureDetails(payload, exitCode, bunStdout, bunStderr)
+    payload = appendFailureDetails(payload, exitCode, bunStdout, bunStderr);
 
-    writeStdoutSync(`${JSON.stringify(payload, null, 2)}\n`)
-    return exitCode
+    writeStdoutSync(`${JSON.stringify(payload, null, 2)}\n`);
+    return exitCode;
   } finally {
     if (jsonOutputDir) {
-      rmSync(jsonOutputDir, { recursive: true, force: true })
+      rmSync(jsonOutputDir, { recursive: true, force: true });
     }
   }
 }

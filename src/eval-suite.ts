@@ -1,26 +1,28 @@
-import { describe, test } from "bun:test"
-import { isFactsCheck, resolveCheckScorers } from "./checks"
-import { collector } from "./collector"
-import { measure } from "./measure"
-import type { EvalData, EvalSuiteConfig, ScorerResult } from "./types"
+import { describe, test } from "bun:test";
+import { isFactsCheck, resolveCheckScorers } from "./checks";
+import { collector } from "./collector";
+import { measure } from "./measure";
+import type { EvalData, EvalSuiteConfig, ScorerResult } from "./types";
 
-const ASYNC_SUITE_BUN_TIMEOUT_MULTIPLIER = 1000
+const ASYNC_SUITE_BUN_TIMEOUT_MULTIPLIER = 1000;
 const EVAL_STACK_PATH_REGEX =
-  /(?:file:\/\/)?((?:\/|[A-Za-z]:[\\/])[^:\n]+?\.eval\.(?:ts|js))(?::\d+:\d+)?/
+  /(?:file:\/\/)?((?:\/|[A-Za-z]:[\\/])[^:\n]+?\.eval\.(?:ts|js))(?::\d+:\d+)?/;
 
 // Variant config for evalSuite.each()
-interface VariantEvalSuiteConfig<TInput, TOutput, TExpected, TVariant>
-  extends Omit<EvalSuiteConfig<TInput, TOutput, TExpected>, "task"> {
-  task: (input: TInput, variant: TVariant) => Promise<TOutput>
+interface VariantEvalSuiteConfig<TInput, TOutput, TExpected, TVariant> extends Omit<
+  EvalSuiteConfig<TInput, TOutput, TExpected>,
+  "task"
+> {
+  task: (input: TInput, variant: TVariant) => Promise<TOutput>;
 }
 
 function evalSuiteImpl<TInput = string, TOutput = string, TExpected = TOutput>(
   name: string,
   config: EvalSuiteConfig<TInput, TOutput, TExpected>,
 ): void {
-  const passThreshold = config.passThreshold ?? 0.5
-  const timeout = config.timeout ?? 30_000
-  const detectedEvalFile = detectEvalFileFromStack(new Error().stack ?? "")
+  const passThreshold = config.passThreshold ?? 0.5;
+  const timeout = config.timeout ?? 30_000;
+  const detectedEvalFile = detectEvalFileFromStack(new Error().stack ?? "");
 
   const suiteKey = collector.registerSuite(
     name,
@@ -29,32 +31,25 @@ function evalSuiteImpl<TInput = string, TOutput = string, TExpected = TOutput>(
       aggregations: config.aggregations,
     },
     detectedEvalFile,
-  )
+  );
 
   if (detectedEvalFile) {
-    collector.setEvalFile(suiteKey, detectedEvalFile)
+    collector.setEvalFile(suiteKey, detectedEvalFile);
   }
 
-  const rawData = config.data
+  const rawData = config.data;
 
   if (Array.isArray(rawData)) {
-    registerTests(suiteKey, name, rawData, config, passThreshold, timeout)
-    return
+    registerTests(suiteKey, name, rawData, config, passThreshold, timeout);
+    return;
   }
 
   if (isAsyncFunction(rawData)) {
-    registerFunctionDataSuite(
-      suiteKey,
-      name,
-      rawData,
-      config,
-      passThreshold,
-      timeout,
-    )
-    return
+    registerFunctionDataSuite(suiteKey, name, rawData, config, passThreshold, timeout);
+    return;
   }
 
-  const providedData = safelyCallDataProvider(rawData)
+  const providedData = safelyCallDataProvider(rawData);
   if ("error" in providedData) {
     registerDataPromiseSuite(
       suiteKey,
@@ -63,20 +58,13 @@ function evalSuiteImpl<TInput = string, TOutput = string, TExpected = TOutput>(
       config,
       passThreshold,
       timeout,
-    )
-    return
+    );
+    return;
   }
 
   if (Array.isArray(providedData.value)) {
-    registerTests(
-      suiteKey,
-      name,
-      providedData.value,
-      config,
-      passThreshold,
-      timeout,
-    )
-    return
+    registerTests(suiteKey, name, providedData.value, config, passThreshold, timeout);
+    return;
   }
 
   if (isPromiseLike(providedData.value)) {
@@ -87,74 +75,65 @@ function evalSuiteImpl<TInput = string, TOutput = string, TExpected = TOutput>(
       config,
       passThreshold,
       timeout,
-    )
-    return
+    );
+    return;
   }
 
   registerDataPromiseSuite(
     suiteKey,
     name,
     Promise.reject(
-      new Error(
-        `Eval suite "${name}" data provider must return an array or a promise of an array`,
-      ),
+      new Error(`Eval suite "${name}" data provider must return an array or a promise of an array`),
     ),
     config,
     passThreshold,
     timeout,
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
 // evalSuite.each() — variant support
 // ---------------------------------------------------------------------------
 
-function evalSuiteEach<TVariant extends { name: string }>(
-  variants: TVariant[],
-) {
+function evalSuiteEach<TVariant extends { name: string }>(variants: TVariant[]) {
   return <TInput = string, TOutput = string, TExpected = TOutput>(
     name: string,
     config: VariantEvalSuiteConfig<TInput, TOutput, TExpected, TVariant>,
   ): void => {
     for (const variant of variants) {
-      const suiteName = `${name} [${variant.name}]`
+      const suiteName = `${name} [${variant.name}]`;
       evalSuiteImpl<TInput, TOutput, TExpected>(suiteName, {
         ...config,
         task: (input: TInput) => config.task(input, variant),
-      })
+      });
     }
-  }
+  };
 }
 
 // Export as a function with .each property
 export const evalSuite = Object.assign(evalSuiteImpl, {
   each: evalSuiteEach,
-})
+});
 
 export function detectEvalFileFromStack(stack: string): string | undefined {
   for (const line of stack.split("\n")) {
     if (!line.includes(".eval.ts") && !line.includes(".eval.js")) {
-      continue
+      continue;
     }
 
-    const pathMatch = line.match(EVAL_STACK_PATH_REGEX)
+    const pathMatch = line.match(EVAL_STACK_PATH_REGEX);
     if (pathMatch?.[1]) {
-      return pathMatch[1].trim()
+      return pathMatch[1].trim();
     }
   }
 
-  return undefined
+  return undefined;
 }
 
-export function getAsyncSuiteTimeout(
-  timeout: number,
-  caseCount: number,
-): number {
-  const safeCaseCount = Number.isFinite(caseCount)
-    ? Math.max(1, Math.floor(caseCount))
-    : 1
+export function getAsyncSuiteTimeout(timeout: number, caseCount: number): number {
+  const safeCaseCount = Number.isFinite(caseCount) ? Math.max(1, Math.floor(caseCount)) : 1;
 
-  return timeout * safeCaseCount
+  return timeout * safeCaseCount;
 }
 
 // ---------------------------------------------------------------------------
@@ -163,11 +142,11 @@ export function getAsyncSuiteTimeout(
 
 function testLabel<TInput>(item: EvalData<TInput, unknown>): string {
   if (typeof item.name === "string" && item.name.trim().length > 0) {
-    return item.name.trim()
+    return item.name.trim();
   }
 
-  if (typeof item.input === "string") return item.input
-  return JSON.stringify(item.input)
+  if (typeof item.input === "string") return item.input;
+  return JSON.stringify(item.input);
 }
 
 function registerTests<TInput, TOutput, TExpected>(
@@ -178,8 +157,8 @@ function registerTests<TInput, TOutput, TExpected>(
   passThreshold: number,
   timeout: number,
 ): void {
-  const items = data.some((d) => d.only) ? data.filter((d) => d.only) : data
-  const testImpl = getCaseTestImplementation()
+  const items = data.some((d) => d.only) ? data.filter((d) => d.only) : data;
+  const testImpl = getCaseTestImplementation();
 
   describe(suiteName, () => {
     for (const item of items) {
@@ -187,30 +166,23 @@ function registerTests<TInput, TOutput, TExpected>(
         testLabel(item),
         () => runSingleEval(suiteKey, suiteName, item, config, passThreshold),
         timeout,
-      )
+      );
     }
-  })
+  });
 }
 
-type CaseTestFn = (
-  label: string,
-  callback: () => Promise<void>,
-  timeout?: number,
-) => void
+type CaseTestFn = (label: string, callback: () => Promise<void>, timeout?: number) => void;
 
 function getCaseTestImplementation(): CaseTestFn {
-  const maybeConcurrent = (test as unknown as { concurrent?: CaseTestFn })
-    .concurrent
+  const maybeConcurrent = (test as unknown as { concurrent?: CaseTestFn }).concurrent;
 
-  return maybeConcurrent ?? test
+  return maybeConcurrent ?? test;
 }
 
 function registerFunctionDataSuite<TInput, TOutput, TExpected>(
   suiteKey: string,
   suiteName: string,
-  dataProvider: () =>
-    | EvalData<TInput, TExpected>[]
-    | Promise<EvalData<TInput, TExpected>[]>,
+  dataProvider: () => EvalData<TInput, TExpected>[] | Promise<EvalData<TInput, TExpected>[]>,
   config: EvalSuiteConfig<TInput, TOutput, TExpected>,
   passThreshold: number,
   timeout: number,
@@ -222,7 +194,7 @@ function registerFunctionDataSuite<TInput, TOutput, TExpected>(
     config,
     passThreshold,
     timeout,
-  )
+  );
 }
 
 function registerDataPromiseSuite<TInput, TOutput, TExpected>(
@@ -237,24 +209,12 @@ function registerDataPromiseSuite<TInput, TOutput, TExpected>(
     test(
       "evaluate all",
       async () => {
-        const data = await withTimeout(
-          dataPromise,
-          timeout,
-          suiteName,
-          "loading data",
-        )
-        await runDataItemsWithTimeout(
-          suiteKey,
-          suiteName,
-          data,
-          config,
-          passThreshold,
-          timeout,
-        )
+        const data = await withTimeout(dataPromise, timeout, suiteName, "loading data");
+        await runDataItemsWithTimeout(suiteKey, suiteName, data, config, passThreshold, timeout);
       },
       timeout * ASYNC_SUITE_BUN_TIMEOUT_MULTIPLIER,
-    )
-  })
+    );
+  });
 }
 
 async function runDataItemsWithTimeout<TInput, TOutput, TExpected>(
@@ -265,27 +225,23 @@ async function runDataItemsWithTimeout<TInput, TOutput, TExpected>(
   passThreshold: number,
   timeout: number,
 ): Promise<void> {
-  const items = data.some((d) => d.only) ? data.filter((d) => d.only) : data
-  const asyncSuiteTimeout = getAsyncSuiteTimeout(timeout, items.length)
+  const items = data.some((d) => d.only) ? data.filter((d) => d.only) : data;
+  const asyncSuiteTimeout = getAsyncSuiteTimeout(timeout, items.length);
 
   await withTimeout(
     Promise.all(
-      items.map((item) =>
-        runSingleEval(suiteKey, suiteName, item, config, passThreshold),
-      ),
+      items.map((item) => runSingleEval(suiteKey, suiteName, item, config, passThreshold)),
     ).then(() => undefined),
     asyncSuiteTimeout,
     suiteName,
     "running cases",
-  )
+  );
 }
 
 function isAsyncFunction<TInput, TExpected>(
-  dataProvider: () =>
-    | EvalData<TInput, TExpected>[]
-    | Promise<EvalData<TInput, TExpected>[]>,
+  dataProvider: () => EvalData<TInput, TExpected>[] | Promise<EvalData<TInput, TExpected>[]>,
 ): boolean {
-  return dataProvider.constructor.name === "AsyncFunction"
+  return dataProvider.constructor.name === "AsyncFunction";
 }
 
 function isPromiseLike<T>(value: unknown): value is Promise<T> {
@@ -294,24 +250,20 @@ function isPromiseLike<T>(value: unknown): value is Promise<T> {
     value !== null &&
     "then" in value &&
     typeof (value as { then?: unknown }).then === "function"
-  )
+  );
 }
 
 function safelyCallDataProvider<TInput, TExpected>(
-  dataProvider: () =>
-    | EvalData<TInput, TExpected>[]
-    | Promise<EvalData<TInput, TExpected>[]>,
+  dataProvider: () => EvalData<TInput, TExpected>[] | Promise<EvalData<TInput, TExpected>[]>,
 ):
   | {
-      value:
-        | EvalData<TInput, TExpected>[]
-        | Promise<EvalData<TInput, TExpected>[]>
+      value: EvalData<TInput, TExpected>[] | Promise<EvalData<TInput, TExpected>[]>;
     }
   | { error: unknown } {
   try {
-    return { value: dataProvider() }
+    return { value: dataProvider() };
   } catch (error) {
-    return { error }
+    return { error };
   }
 }
 
@@ -319,9 +271,9 @@ function toGuardedPromise<T>(value: Promise<T>): Promise<T> {
   return value.then(
     (resolved) => resolved,
     (error) => {
-      throw error
+      throw error;
     },
-  )
+  );
 }
 
 function withTimeout<T>(
@@ -332,25 +284,21 @@ function withTimeout<T>(
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      const phaseSuffix = phase ? ` while ${phase}` : ""
-      reject(
-        new Error(
-          `Eval suite "${suiteName}" timed out after ${timeoutMs}ms${phaseSuffix}`,
-        ),
-      )
-    }, timeoutMs)
+      const phaseSuffix = phase ? ` while ${phase}` : "";
+      reject(new Error(`Eval suite "${suiteName}" timed out after ${timeoutMs}ms${phaseSuffix}`));
+    }, timeoutMs);
 
     promise.then(
       (value) => {
-        clearTimeout(timer)
-        resolve(value)
+        clearTimeout(timer);
+        resolve(value);
       },
       (error) => {
-        clearTimeout(timer)
-        reject(error)
+        clearTimeout(timer);
+        reject(error);
       },
-    )
-  })
+    );
+  });
 }
 
 async function runSingleEval<TInput, TOutput, TExpected>(
@@ -360,26 +308,26 @@ async function runSingleEval<TInput, TOutput, TExpected>(
   config: EvalSuiteConfig<TInput, TOutput, TExpected>,
   passThreshold: number,
 ): Promise<void> {
-  const name = testLabel(item)
+  const name = testLabel(item);
 
   await collector.runTest(suiteKey, suiteName, name, async () => {
     await measure(async (m) => {
       if (item.weight !== undefined) {
-        m.weight(item.weight)
+        m.weight(item.weight);
       }
 
-      const output = await config.task(item.input)
+      const output = await config.task(item.input);
 
-      m.taskEnd()
-      collector.setPhase("scoring")
+      m.taskEnd();
+      collector.setPhase("scoring");
 
       collector.setTestContext({
         input: item.input,
         output,
         expected: item.expected,
-      })
+      });
 
-      let scorerResults: ScorerResult[]
+      let scorerResults: ScorerResult[];
 
       if (config.scorers) {
         scorerResults = await Promise.all(
@@ -388,7 +336,7 @@ async function runSingleEval<TInput, TOutput, TExpected>(
               input: item.input,
               output: output as TOutput,
               expected: item.expected,
-            })
+            });
 
             if (typeof rawResult === "number") {
               return {
@@ -396,7 +344,7 @@ async function runSingleEval<TInput, TOutput, TExpected>(
                 name: scorer.name,
                 description: scorer.description,
                 kind: scorer.kind,
-              }
+              };
             }
             return {
               score: rawResult.score,
@@ -404,44 +352,38 @@ async function runSingleEval<TInput, TOutput, TExpected>(
               description: scorer.description,
               metadata: rawResult.metadata,
               kind: scorer.kind,
-            }
+            };
           }),
-        )
+        );
       } else if (isFactsCheck(item.expected)) {
-        scorerResults = await resolveCheckScorers(
-          item.expected,
-          item.input,
-          output,
-        )
+        scorerResults = await resolveCheckScorers(item.expected, item.input, output);
       } else {
         throw new Error(
           `Eval "${name}": no scorers provided and expected is not a recognized check type. ` +
             "Use Facts([...]) or provide explicit scorers.",
-        )
+        );
       }
 
-      const fromChecks = !config.scorers
+      const fromChecks = !config.scorers;
 
       if (fromChecks) {
-        const avg =
-          scorerResults.reduce((sum, r) => sum + r.score, 0) /
-          scorerResults.length
-        m.score("checks", avg)
+        const avg = scorerResults.reduce((sum, r) => sum + r.score, 0) / scorerResults.length;
+        m.score("checks", avg);
       } else {
         for (const result of scorerResults) {
-          m.score(result.name, result.score)
+          m.score(result.name, result.score);
         }
       }
 
       for (const result of scorerResults) {
-        collector.addScorerResult(result)
+        collector.addScorerResult(result);
       }
 
       if (scorerResults.some((r) => r.score < passThreshold)) {
-        collector.setTestPassed(false)
+        collector.setTestPassed(false);
       }
 
-      return output
-    })
-  })
+      return output;
+    });
+  });
 }

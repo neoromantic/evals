@@ -1,10 +1,8 @@
-import { openai } from "@ai-sdk/openai"
-import { traceModel } from "@goodit/evals"
-import { generateText } from "ai"
+import { openai } from "@ai-sdk/openai";
+import { traceModel } from "@goodit/evals";
+import { generateText } from "ai";
 
-export async function generateCountryBriefing(
-  country: string,
-): Promise<string> {
+export async function generateCountryBriefing(country: string): Promise<string> {
   const prompt = [
     "You are a factual research assistant.",
     `Write a 4-line briefing about ${country}.`,
@@ -15,12 +13,12 @@ export async function generateCountryBriefing(
     "One notable fact: ...",
     "Do not include extra lines or commentary.",
     "If uncertain, state only high-confidence facts.",
-  ].join("\n")
+  ].join("\n");
 
   const { text } = await generateText({
     model: traceModel(openai("gpt-4o-mini")),
     prompt,
-  })
+  });
 
-  return text.trim()
+  return text.trim();
 }

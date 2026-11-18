@@ -1,12 +1,6 @@
-import { openai } from "@ai-sdk/openai"
-import {
-  createScorer,
-  ExactMatch,
-  evalSuite,
-  SemanticMatch,
-  traceModel,
-} from "@goodit/evals"
-import { getCapital } from "./capitals"
+import { openai } from "@ai-sdk/openai";
+import { createScorer, ExactMatch, evalSuite, SemanticMatch, traceModel } from "@goodit/evals";
+import { getCapital } from "./capitals";
 
 evalSuite("Country Capitals", {
   data: () => [
@@ -19,7 +13,7 @@ evalSuite("Country Capitals", {
     { input: "Kazakhstan", expected: "Astana" },
   ],
   task: async (input: string) => {
-    return await getCapital(input)
+    return await getCapital(input);
   },
   scorers: [
     ExactMatch,
@@ -39,4 +33,4 @@ evalSuite("Country Capitals", {
       threshold: 0.8,
     }),
   ],
-})
+});

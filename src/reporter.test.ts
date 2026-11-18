@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 import {
   classifyScorerScore,
   displayMetricName,
@@ -6,31 +6,31 @@ import {
   printSuiteReport,
   printVariantComparisonTables,
   shouldPrintVerboseTest,
-} from "./reporter"
-import type { SuiteReport, VerboseTestReport } from "./types"
+} from "./reporter";
+import type { SuiteReport, VerboseTestReport } from "./types";
 
 describe("reporter ttfb handling", () => {
   test("uses consistent naming and formatting for ttfb metrics", () => {
-    expect(displayMetricName("ttfb")).toBe("TTFB")
-    expect(displayMetricName("ttfb.avg")).toBe("TTFB (avg)")
-    expect(formatMetricValue("ttfb", 250)).toBe("250 ms")
-    expect(formatMetricValue("ttfb.avg", 1250)).toBe("1.3s")
-  })
-})
+    expect(displayMetricName("ttfb")).toBe("TTFB");
+    expect(displayMetricName("ttfb.avg")).toBe("TTFB (avg)");
+    expect(formatMetricValue("ttfb", 250)).toBe("250 ms");
+    expect(formatMetricValue("ttfb.avg", 1250)).toBe("1.3s");
+  });
+});
 
 describe("reporter verbose helpers", () => {
   test("classifies score states against pass threshold", () => {
-    expect(classifyScorerScore(0.49, 0.5)).toBe("fail")
-    expect(classifyScorerScore(0.5, 0.5)).toBe("low")
-    expect(classifyScorerScore(0.9, 0.5)).toBe("low")
-    expect(classifyScorerScore(1, 0.5)).toBe("pass")
-  })
+    expect(classifyScorerScore(0.49, 0.5)).toBe("fail");
+    expect(classifyScorerScore(0.5, 0.5)).toBe("low");
+    expect(classifyScorerScore(0.9, 0.5)).toBe("low");
+    expect(classifyScorerScore(1, 0.5)).toBe("pass");
+  });
 
   test("respects custom thresholds at boundary values", () => {
-    expect(classifyScorerScore(0.749, 0.75)).toBe("fail")
-    expect(classifyScorerScore(0.75, 0.75)).toBe("low")
-    expect(classifyScorerScore(1.05, 0.75)).toBe("pass")
-  })
+    expect(classifyScorerScore(0.749, 0.75)).toBe("fail");
+    expect(classifyScorerScore(0.75, 0.75)).toBe("low");
+    expect(classifyScorerScore(1.05, 0.75)).toBe("pass");
+  });
 
   test("prints verbose details only for non-perfect scorer results", () => {
     expect(
@@ -41,7 +41,7 @@ describe("reporter verbose helpers", () => {
         metrics: {},
         scorerResults: [{ name: "ExactMatch", score: 1 }],
       }),
-    ).toBe(false)
+    ).toBe(false);
 
     expect(
       shouldPrintVerboseTest({
@@ -51,8 +51,8 @@ describe("reporter verbose helpers", () => {
         metrics: {},
         scorerResults: [{ name: "Factuality", score: 0.6 }],
       }),
-    ).toBe(true)
-  })
+    ).toBe(true);
+  });
 
   test("ignores pass flag and empty scorer list when selecting tests", () => {
     expect(
@@ -63,7 +63,7 @@ describe("reporter verbose helpers", () => {
         metrics: {},
         scorerResults: [],
       }),
-    ).toBe(false)
+    ).toBe(false);
 
     expect(
       shouldPrintVerboseTest({
@@ -73,9 +73,9 @@ describe("reporter verbose helpers", () => {
         metrics: {},
         scorerResults: [{ name: "ExactMatch", score: 1 }],
       }),
-    ).toBe(false)
-  })
-})
+    ).toBe(false);
+  });
+});
 
 describe("reporter verbose scorer diagnostics", () => {
   test("prints verbose block only for tests with non-perfect scores", () => {
@@ -83,53 +83,51 @@ describe("reporter verbose scorer diagnostics", () => {
       createVerboseTest("perfect", [1]),
       createVerboseTest("low-only", [0.95]),
       createVerboseTest("failing", [0.3, 1]),
-    ])
+    ]);
 
     const output = stripAnsi(
       captureLogs(() => printSuiteReport(report, undefined, { verbose: true })),
-    )
+    );
 
-    expect(output).toContain("SCORER DETAILS (2 of 3)")
-    expect(output).toContain("low-only")
-    expect(output).toContain("failing")
-    const scorerDetails = output.split("SCORER DETAILS")[1]!
-    expect(scorerDetails).not.toContain("perfect")
-    expect(output).toContain("no hard failures")
-    expect(output).toContain("1 below threshold")
-    expect(output).toContain("LOW")
-    expect(output).toContain("FAIL")
-    expect(output).toContain("PASS")
-  })
+    expect(output).toContain("SCORER DETAILS (2 of 3)");
+    expect(output).toContain("low-only");
+    expect(output).toContain("failing");
+    const scorerDetails = output.split("SCORER DETAILS")[1]!;
+    expect(scorerDetails).not.toContain("perfect");
+    expect(output).toContain("no hard failures");
+    expect(output).toContain("1 below threshold");
+    expect(output).toContain("LOW");
+    expect(output).toContain("FAIL");
+    expect(output).toContain("PASS");
+  });
 
   test("prints perfect-score message when every scorer is 1.00", () => {
     const report = createReport([
       createVerboseTest("all-good-a", [1]),
       createVerboseTest("all-good-b", [1, 1]),
-    ])
+    ]);
 
     const output = stripAnsi(
       captureLogs(() => printSuiteReport(report, undefined, { verbose: true })),
-    )
+    );
 
-    expect(output).toContain("SCORER DETAILS")
-    expect(output).toContain("All scorer checks are perfect (1.00).")
-  })
-})
+    expect(output).toContain("SCORER DETAILS");
+    expect(output).toContain("All scorer checks are perfect (1.00).");
+  });
+});
 
 describe("reporter judge badge", () => {
   test("keeps a space between a long judge scorer name and its status", () => {
-    const test = createVerboseTest("judged", [0])
-    test.scorerResults = [{ name: "PolicyMention", score: 0, kind: "judge" }]
+    const test = createVerboseTest("judged", [0]);
+    test.scorerResults = [{ name: "PolicyMention", score: 0, kind: "judge" }];
 
     const output = stripAnsi(
-      captureLogs(() =>
-        printSuiteReport(createReport([test]), undefined, { verbose: true }),
-      ),
-    )
+      captureLogs(() => printSuiteReport(createReport([test]), undefined, { verbose: true })),
+    );
 
-    expect(output).toContain("PolicyMention [judge]  0.00  FAIL")
-  })
-})
+    expect(output).toContain("PolicyMention [judge]  0.00  FAIL");
+  });
+});
 
 describe("reporter variant comparison tables", () => {
   test("prints comparison table for variant suites", () => {
@@ -167,22 +165,20 @@ describe("reporter variant comparison tables", () => {
           "test.pass_rate": 1,
         },
       },
-    ]
+    ];
 
-    const output = stripAnsi(
-      captureLogs(() => printVariantComparisonTables(reports)),
-    )
+    const output = stripAnsi(captureLogs(() => printVariantComparisonTables(reports)));
 
-    expect(output).toContain("VARIANT COMPARISON: People Search")
-    expect(output).toContain("| Metric")
-    expect(output).toContain("exa")
-    expect(output).toContain("firecrawl")
-    expect(output).toContain("sonar")
-    expect(output).toContain("PeopleSearchRelevancy (avg)")
-    expect(output).toContain("Latency (avg)")
-    expect(output).toContain("Pass Rate")
-  })
-})
+    expect(output).toContain("VARIANT COMPARISON: People Search");
+    expect(output).toContain("| Metric");
+    expect(output).toContain("exa");
+    expect(output).toContain("firecrawl");
+    expect(output).toContain("sonar");
+    expect(output).toContain("PeopleSearchRelevancy (avg)");
+    expect(output).toContain("Latency (avg)");
+    expect(output).toContain("Pass Rate");
+  });
+});
 
 function createVerboseTest(name: string, scores: number[]): VerboseTestReport {
   return {
@@ -194,7 +190,7 @@ function createVerboseTest(name: string, scores: number[]): VerboseTestReport {
       name: `Scorer${idx + 1}`,
       score,
     })),
-  }
+  };
 }
 
 function createReport(tests: VerboseTestReport[]): SuiteReport {
@@ -209,43 +205,43 @@ function createReport(tests: VerboseTestReport[]): SuiteReport {
     comparisons: [],
     perTestComparisons: {},
     tests,
-  }
+  };
 }
 
 function captureLogs(fn: () => void): string {
-  const lines: string[] = []
-  const originalLog = console.log
-  console.log = (...args: unknown[]) => lines.push(args.join(" "))
+  const lines: string[] = [];
+  const originalLog = console.log;
+  console.log = (...args: unknown[]) => lines.push(args.join(" "));
   try {
-    fn()
+    fn();
   } finally {
-    console.log = originalLog
+    console.log = originalLog;
   }
-  return lines.join("\n")
+  return lines.join("\n");
 }
 
 function stripAnsi(value: string): string {
-  let output = ""
-  let insideAnsiSequence = false
+  let output = "";
+  let insideAnsiSequence = false;
 
   for (let index = 0; index < value.length; index += 1) {
-    const char = value[index]
-    const nextChar = value[index + 1]
+    const char = value[index];
+    const nextChar = value[index + 1];
 
     if (!insideAnsiSequence && char === "\u001b" && nextChar === "[") {
-      insideAnsiSequence = true
-      continue
+      insideAnsiSequence = true;
+      continue;
     }
 
     if (insideAnsiSequence) {
       if (char === "m") {
-        insideAnsiSequence = false
+        insideAnsiSequence = false;
       }
-      continue
+      continue;
     }
 
-    output += char
+    output += char;
   }
 
-  return output
+  return output;
 }

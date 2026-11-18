@@ -1,26 +1,26 @@
-import type { ComparisonResult, SuiteReport, VerboseTestReport } from "./types"
+import type { ComparisonResult, SuiteReport, VerboseTestReport } from "./types";
 
 // --- ANSI color helpers ---
 
-const bold = (s: string) => `\x1b[1m${s}\x1b[22m`
-const dim = (s: string) => `\x1b[2m${s}\x1b[22m`
-const green = (s: string) => `\x1b[32m${s}\x1b[39m`
-const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`
-const red = (s: string) => `\x1b[31m${s}\x1b[39m`
-const cyan = (s: string) => `\x1b[36m${s}\x1b[39m`
+const bold = (s: string) => `\x1b[1m${s}\x1b[22m`;
+const dim = (s: string) => `\x1b[2m${s}\x1b[22m`;
+const green = (s: string) => `\x1b[32m${s}\x1b[39m`;
+const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`;
+const red = (s: string) => `\x1b[31m${s}\x1b[39m`;
+const cyan = (s: string) => `\x1b[36m${s}\x1b[39m`;
 
 function stripAnsi(s: string): string {
   // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences use ESC.
-  return s.replace(/\x1b\[[0-9;]*m/g, "")
+  return s.replace(/\x1b\[[0-9;]*m/g, "");
 }
 
 // --- Formatting helpers ---
 
-const LINE_W = 60
-const heavy = "═".repeat(LINE_W)
-const light = "─".repeat(LINE_W - 2)
+const LINE_W = 60;
+const heavy = "═".repeat(LINE_W);
+const light = "─".repeat(LINE_W - 2);
 const GROUPED_AGGREGATE_RE =
-  /^(score\..+|latency(?:\.\w+)?|ttfb(?:\.\w+)?|tokens(?:\.\w+)+)\.(avg|min|max|p50|p95|sum)$/
+  /^(score\..+|latency(?:\.\w+)?|ttfb(?:\.\w+)?|tokens(?:\.\w+)+)\.(avg|min|max|p50|p95|sum)$/;
 
 const METRIC_DISPLAY_NAMES: Record<string, string> = {
   "test.count": "Tests",
@@ -41,105 +41,99 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   "tokens.scorer.input": "Scorer Input Tokens",
   "tokens.scorer.output": "Scorer Output Tokens",
   "tokens.scorer.total": "Scorer Total Tokens",
-}
+};
 
 /** Transform internal metric names to human-friendly display names */
 export function displayMetricName(name: string): string {
-  const direct = METRIC_DISPLAY_NAMES[name]
-  if (direct) return direct
+  const direct = METRIC_DISPLAY_NAMES[name];
+  if (direct) return direct;
 
   // score.X.avg → X (avg), score.X.min → X (min)
-  const scoreAgg = name.match(
-    /^score\.(.+)\.(avg|min|max|p50|p95|sum|count|rate)$/,
-  )
-  if (scoreAgg) return `${scoreAgg[1]} (${scoreAgg[2]})`
+  const scoreAgg = name.match(/^score\.(.+)\.(avg|min|max|p50|p95|sum|count|rate)$/);
+  if (scoreAgg) return `${scoreAgg[1]} (${scoreAgg[2]})`;
 
   // score.X → X (per-test, no agg suffix)
-  const scoreRaw = name.match(/^score\.(.+)$/)
-  if (scoreRaw) return scoreRaw[1]!
+  const scoreRaw = name.match(/^score\.(.+)$/);
+  if (scoreRaw) return scoreRaw[1]!;
 
   // latency.sum → Latency (sum)
-  const agg = name.match(/^(.+)\.(avg|min|sum|count|rate)$/)
+  const agg = name.match(/^(.+)\.(avg|min|sum|count|rate)$/);
   if (agg) {
-    const baseName = agg[1]!
+    const baseName = agg[1]!;
     const base =
-      baseName === "ttfb"
-        ? "TTFB"
-        : baseName.charAt(0).toUpperCase() + baseName.slice(1)
-    return `${base} (${agg[2]})`
+      baseName === "ttfb" ? "TTFB" : baseName.charAt(0).toUpperCase() + baseName.slice(1);
+    return `${base} (${agg[2]})`;
   }
 
-  return name
+  return name;
 }
 
 export function displayScore(score: number | null): string {
-  if (score === null) return dim("N/A")
-  const pct = Math.round(score * 100)
-  const label = `${pct}%`
-  if (pct >= 80) return green(label)
-  if (pct >= 50) return yellow(label)
-  return red(label)
+  if (score === null) return dim("N/A");
+  const pct = Math.round(score * 100);
+  const label = `${pct}%`;
+  if (pct >= 80) return green(label);
+  if (pct >= 50) return yellow(label);
+  return red(label);
 }
 
 /** Format a metric value for display. Uses the original metric name for classification. */
 export function formatMetricValue(name: string, value: number): string {
-  const lower = name.toLowerCase()
+  const lower = name.toLowerCase();
 
   // Latency / TTFB → seconds or milliseconds
   if (lower.startsWith("latency") || lower.startsWith("ttfb")) {
-    if (value >= 1000) return `${(value / 1000).toFixed(1)}s`
-    return `${Math.round(value)} ms`
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}s`;
+    return `${Math.round(value)} ms`;
   }
 
   // Pass rate → PASS/FAIL/percentage
   if (lower.endsWith("pass_rate")) {
-    if (value === 1) return green("PASS")
-    if (value === 0) return red("FAIL")
-    return yellow(`${Math.round(value * 100)}%`)
+    if (value === 1) return green("PASS");
+    if (value === 0) return red("FAIL");
+    return yellow(`${Math.round(value * 100)}%`);
   }
 
   // Score → decimal (combined line renderer handles boolean-aware formatting)
   if (lower.startsWith("score")) {
-    return value.toFixed(2)
+    return value.toFixed(2);
   }
 
   // Test count → integer
-  if (lower === "test.count") return String(Math.round(value))
+  if (lower === "test.count") return String(Math.round(value));
 
   // Tokens → integer
-  if (lower.startsWith("tokens")) return String(Math.round(value))
+  if (lower.startsWith("tokens")) return String(Math.round(value));
 
   // Error count → integer
-  if (lower.startsWith("error")) return String(Math.round(value))
+  if (lower.startsWith("error")) return String(Math.round(value));
 
-  return value.toFixed(2)
+  return value.toFixed(2);
 }
 
 export function formatChange(comparison: ComparisonResult): string {
-  const changePct = comparison.change * 100
-  const sign = changePct >= 0 ? "+" : ""
-  const pctStr = `${sign}${changePct.toFixed(1)}%`
+  const changePct = comparison.change * 100;
+  const sign = changePct >= 0 ? "+" : "";
+  const pctStr = `${sign}${changePct.toFixed(1)}%`;
 
   if (comparison.regressed) {
-    const arrow = comparison.direction === "lower" ? "\u25B2" : "\u25BC"
-    return `${red(pctStr)}  ${red(`${arrow} REGRESSION`)}`
+    const arrow = comparison.direction === "lower" ? "\u25B2" : "\u25BC";
+    return `${red(pctStr)}  ${red(`${arrow} REGRESSION`)}`;
   }
 
   // Near-zero changes → dim
-  if (Math.abs(changePct) < 0.5) return dim(pctStr)
+  if (Math.abs(changePct) < 0.5) return dim(pctStr);
 
   // Color based on whether the change is an improvement or degradation
   const isImprovement =
     (comparison.direction === "lower" && changePct < 0) ||
-    (comparison.direction === "higher" && changePct > 0)
+    (comparison.direction === "higher" && changePct > 0);
 
-  return isImprovement ? green(pctStr) : yellow(pctStr)
+  return isImprovement ? green(pctStr) : yellow(pctStr);
 }
 
 function metricLabelWidth(names: string[]): number {
-  return (
-    Math.max(...names.map((name) => displayMetricName(name).length), 12) + 2
-  )
+  return Math.max(...names.map((name) => displayMetricName(name).length), 12) + 2;
 }
 
 function appendBaselineComparison(
@@ -148,226 +142,207 @@ function appendBaselineComparison(
   currentComparison: ComparisonResult | undefined,
 ): string {
   if (!currentComparison || currentComparison.change === 0) {
-    return line
+    return line;
   }
 
-  const baselineFormatted = formatMetricValue(
-    metricName,
-    currentComparison.baseline,
-  )
+  const baselineFormatted = formatMetricValue(metricName, currentComparison.baseline);
   return (
-    line +
-    `${dim("was")} ${padRight(baselineFormatted, 10)}` +
-    formatChange(currentComparison)
-  )
+    line + `${dim("was")} ${padRight(baselineFormatted, 10)}` + formatChange(currentComparison)
+  );
 }
 
 interface PrintSuiteReportOptions {
-  verbose?: boolean
+  verbose?: boolean;
 }
 
 interface VariantSuiteEntry {
-  baseSuiteName: string
-  variantName: string
-  report: SuiteReport
+  baseSuiteName: string;
+  variantName: string;
+  report: SuiteReport;
 }
 
-export function classifyScorerScore(
-  score: number,
-  passThreshold: number,
-): "fail" | "low" | "pass" {
+export function classifyScorerScore(score: number, passThreshold: number): "fail" | "low" | "pass" {
   if (score < passThreshold) {
-    return "fail"
+    return "fail";
   }
 
   if (score < 1) {
-    return "low"
+    return "low";
   }
 
-  return "pass"
+  return "pass";
 }
 
 export function shouldPrintVerboseTest(test: VerboseTestReport): boolean {
-  return test.scorerResults.some((scorerResult) => scorerResult.score < 1)
+  return test.scorerResults.some((scorerResult) => scorerResult.score < 1);
 }
 
 function formatScorerStatus(score: number, passThreshold: number): string {
-  const scoreText = score.toFixed(2)
-  const status = classifyScorerScore(score, passThreshold)
+  const scoreText = score.toFixed(2);
+  const status = classifyScorerScore(score, passThreshold);
 
   if (status === "fail") {
-    return `${red(scoreText)}  ${red("FAIL")}`
+    return `${red(scoreText)}  ${red("FAIL")}`;
   }
 
   if (status === "low") {
-    return `${yellow(scoreText)}  ${yellow("LOW")}`
+    return `${yellow(scoreText)}  ${yellow("LOW")}`;
   }
 
-  return `${green(scoreText)}  ${green("PASS")}`
+  return `${green(scoreText)}  ${green("PASS")}`;
 }
 
 function formatScoreSummary(score: number, passThreshold: number): string {
-  const pct = `${Math.round(score * 100)}%`
-  const margin = score - passThreshold
-  const marginLabel = `${margin >= 0 ? "+" : ""}${margin.toFixed(2)}`
-  return `${pct}, ${marginLabel} vs threshold ${passThreshold.toFixed(2)}`
+  const pct = `${Math.round(score * 100)}%`;
+  const margin = score - passThreshold;
+  const marginLabel = `${margin >= 0 ? "+" : ""}${margin.toFixed(2)}`;
+  return `${pct}, ${marginLabel} vs threshold ${passThreshold.toFixed(2)}`;
 }
 
 function valueLines(value: unknown): string[] {
   if (value === undefined) {
-    return []
+    return [];
   }
 
   if (typeof value === "string") {
-    return normalizeMultiline(value).split("\n")
+    return normalizeMultiline(value).split("\n");
   }
 
-  const serialized = JSON.stringify(value, null, 2)
+  const serialized = JSON.stringify(value, null, 2);
   if (!serialized) {
-    return []
+    return [];
   }
 
-  return serialized.split("\n")
+  return serialized.split("\n");
 }
 
 function metadataLines(metadata: unknown): string[] {
   if (metadata === undefined || metadata === null) {
-    return []
+    return [];
   }
 
   if (typeof metadata !== "object" || Array.isArray(metadata)) {
-    return valueLines(metadata)
+    return valueLines(metadata);
   }
 
-  const objectMetadata = metadata as Record<string, unknown>
-  const rationale = objectMetadata.rationale
-  const compactEntries = Object.entries(objectMetadata).filter(
-    ([key]) => key !== "rationale",
-  )
-  const compactMetadata =
-    compactEntries.length > 0 ? Object.fromEntries(compactEntries) : null
-  const lines: string[] = []
+  const objectMetadata = metadata as Record<string, unknown>;
+  const rationale = objectMetadata.rationale;
+  const compactEntries = Object.entries(objectMetadata).filter(([key]) => key !== "rationale");
+  const compactMetadata = compactEntries.length > 0 ? Object.fromEntries(compactEntries) : null;
+  const lines: string[] = [];
 
   if (compactMetadata) {
-    lines.push(...valueLines(compactMetadata))
+    lines.push(...valueLines(compactMetadata));
   }
 
   if (typeof rationale === "string") {
     if (lines.length > 0) {
-      lines.push("")
+      lines.push("");
     }
-    lines.push("rationale:")
-    lines.push(...normalizeMultiline(rationale).split("\n"))
+    lines.push("rationale:");
+    lines.push(...normalizeMultiline(rationale).split("\n"));
   } else if (rationale !== undefined) {
     if (lines.length > 0) {
-      lines.push("")
+      lines.push("");
     }
-    lines.push("rationale:")
-    lines.push(...valueLines(rationale))
+    lines.push("rationale:");
+    lines.push(...valueLines(rationale));
   }
 
-  return lines
+  return lines;
 }
 
 function normalizeMultiline(value: string): string {
-  return value.replaceAll("\\n", "\n").replaceAll("\r\n", "\n")
+  return value.replaceAll("\\n", "\n").replaceAll("\r\n", "\n");
 }
 
 function factualityChoiceSummary(metadata: unknown): string | null {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return null
+    return null;
   }
 
-  const objectMetadata = metadata as Record<string, unknown>
-  const choice =
-    typeof objectMetadata.choice === "string" ? objectMetadata.choice : null
+  const objectMetadata = metadata as Record<string, unknown>;
+  const choice = typeof objectMetadata.choice === "string" ? objectMetadata.choice : null;
   const choiceMeaning =
-    typeof objectMetadata.choiceMeaning === "string"
-      ? objectMetadata.choiceMeaning
-      : null
+    typeof objectMetadata.choiceMeaning === "string" ? objectMetadata.choiceMeaning : null;
 
   if (!choice) {
-    return null
+    return null;
   }
 
   if (choiceMeaning) {
-    return `judge decision: ${choice} -> ${choiceMeaning}`
+    return `judge decision: ${choice} -> ${choiceMeaning}`;
   }
 
-  return `judge decision: ${choice}`
+  return `judge decision: ${choice}`;
 }
 
 function printValueBlock(label: string, value: unknown): void {
-  const lines = valueLines(value)
+  const lines = valueLines(value);
   if (lines.length === 0) {
-    return
+    return;
   }
 
-  console.log(`     ${bold(`${label}:`)}`)
+  console.log(`     ${bold(`${label}:`)}`);
   for (const line of lines) {
-    console.log(`       ${line}`)
+    console.log(`       ${line}`);
   }
 }
 
 function printVerboseScorerDetails(report: SuiteReport): void {
-  const verboseTests = report.tests.filter(shouldPrintVerboseTest)
+  const verboseTests = report.tests.filter(shouldPrintVerboseTest);
 
-  console.log("")
+  console.log("");
   if (verboseTests.length === 0) {
-    console.log(bold(" SCORER DETAILS"))
-    console.log(`   ${green("All scorer checks are perfect (1.00).")}`)
-    return
+    console.log(bold(" SCORER DETAILS"));
+    console.log(`   ${green("All scorer checks are perfect (1.00).")}`);
+    return;
   }
 
-  console.log(
-    bold(` SCORER DETAILS (${verboseTests.length} of ${report.testCount})`),
-  )
+  console.log(bold(` SCORER DETAILS (${verboseTests.length} of ${report.testCount})`));
 
   const scorerNameWidth = Math.max(
     ...verboseTests.flatMap((test) =>
       test.scorerResults.map(
-        (scorerResult) =>
-          scorerResult.name.length + (scorerResult.kind === "judge" ? 8 : 0),
+        (scorerResult) => scorerResult.name.length + (scorerResult.kind === "judge" ? 8 : 0),
       ),
     ),
     12,
-  )
+  );
 
   for (const test of verboseTests) {
     const failedScorers = test.scorerResults.filter(
       (scorerResult) => scorerResult.score < report.passThreshold,
-    ).length
+    ).length;
     const failingLabel =
-      failedScorers > 0
-        ? red(`${failedScorers} below threshold`)
-        : yellow("no hard failures")
+      failedScorers > 0 ? red(`${failedScorers} below threshold`) : yellow("no hard failures");
 
-    console.log(`   ${cyan(test.displayName)} ${dim(`(${failingLabel})`)}`)
-    printValueBlock("Input", test.input)
-    printValueBlock("Expected", test.expected)
-    printValueBlock("Output", test.output)
+    console.log(`   ${cyan(test.displayName)} ${dim(`(${failingLabel})`)}`);
+    printValueBlock("Input", test.input);
+    printValueBlock("Expected", test.expected);
+    printValueBlock("Output", test.output);
 
     for (const scorerResult of test.scorerResults) {
-      const kindBadge = scorerResult.kind === "judge" ? dim(" [judge]") : ""
-      let line = `     ${padRight(scorerResult.name + kindBadge, scorerNameWidth + 2)}`
-      line += formatScorerStatus(scorerResult.score, report.passThreshold)
-      line += ` ${dim(`(${formatScoreSummary(scorerResult.score, report.passThreshold)})`)}`
-      console.log(line)
+      const kindBadge = scorerResult.kind === "judge" ? dim(" [judge]") : "";
+      let line = `     ${padRight(scorerResult.name + kindBadge, scorerNameWidth + 2)}`;
+      line += formatScorerStatus(scorerResult.score, report.passThreshold);
+      line += ` ${dim(`(${formatScoreSummary(scorerResult.score, report.passThreshold)})`)}`;
+      console.log(line);
 
       if (scorerResult.description) {
-        console.log(`       ${dim(`about: ${scorerResult.description}`)}`)
+        console.log(`       ${dim(`about: ${scorerResult.description}`)}`);
       }
 
-      const choiceSummary = factualityChoiceSummary(scorerResult.metadata)
+      const choiceSummary = factualityChoiceSummary(scorerResult.metadata);
       if (choiceSummary) {
-        console.log(`       ${dim(choiceSummary)}`)
+        console.log(`       ${dim(choiceSummary)}`);
       }
 
-      const metadata = metadataLines(scorerResult.metadata)
+      const metadata = metadataLines(scorerResult.metadata);
       if (metadata.length > 0 && scorerResult.score < 1) {
-        console.log(`       ${dim("metadata:")}`)
+        console.log(`       ${dim("metadata:")}`);
         for (const line of metadata) {
-          console.log(`         ${dim(line)}`)
+          console.log(`         ${dim(line)}`);
         }
       }
     }
@@ -375,122 +350,113 @@ function printVerboseScorerDetails(report: SuiteReport): void {
 }
 
 function printPerTestResults(report: SuiteReport): void {
-  if (report.tests.length === 0) return
+  if (report.tests.length === 0) return;
 
-  const hasScorers = report.tests.some((t) => t.scorerResults.length > 0)
-  if (!hasScorers) return
+  const hasScorers = report.tests.some((t) => t.scorerResults.length > 0);
+  if (!hasScorers) return;
 
-  console.log(bold(" RESULTS"))
+  console.log(bold(" RESULTS"));
 
   for (const test of report.tests) {
-    if (test.scorerResults.length === 0) continue
+    if (test.scorerResults.length === 0) continue;
 
-    const avg =
-      test.scorerResults.reduce((sum, r) => sum + r.score, 0) /
-      test.scorerResults.length
-    const status = avg >= report.passThreshold ? green("PASS") : red("FAIL")
-    console.log(`   ${cyan(test.displayName)}  ${status}  ${avg.toFixed(2)}`)
+    const avg = test.scorerResults.reduce((sum, r) => sum + r.score, 0) / test.scorerResults.length;
+    const status = avg >= report.passThreshold ? green("PASS") : red("FAIL");
+    console.log(`   ${cyan(test.displayName)}  ${status}  ${avg.toFixed(2)}`);
 
-    const nameWidth =
-      Math.max(...test.scorerResults.map((r) => r.name.length), 12) + 2
+    const nameWidth = Math.max(...test.scorerResults.map((r) => r.name.length), 12) + 2;
 
     for (const result of test.scorerResults) {
-      const label =
-        result.name.length > 56 ? `${result.name.slice(0, 53)}...` : result.name
-      const scoreStatus =
-        result.score >= report.passThreshold ? green("PASS") : red("FAIL")
-      console.log(
-        `     ${padRight(label, Math.min(nameWidth, 58))}${scoreStatus}`,
-      )
+      const label = result.name.length > 56 ? `${result.name.slice(0, 53)}...` : result.name;
+      const scoreStatus = result.score >= report.passThreshold ? green("PASS") : red("FAIL");
+      console.log(`     ${padRight(label, Math.min(nameWidth, 58))}${scoreStatus}`);
     }
-    console.log("")
+    console.log("");
   }
 }
 
 function detectBooleanScores(report: SuiteReport): Set<string> {
-  const booleans = new Set<string>()
-  const nonBooleans = new Set<string>()
+  const booleans = new Set<string>();
+  const nonBooleans = new Set<string>();
   for (const test of report.tests) {
     for (const [name, value] of Object.entries(test.metrics)) {
-      if (!name.startsWith("score.")) continue
-      if (nonBooleans.has(name)) continue
+      if (!name.startsWith("score.")) continue;
+      if (nonBooleans.has(name)) continue;
       if (value === 0 || value === 1) {
-        booleans.add(name)
+        booleans.add(name);
       } else {
-        nonBooleans.add(name)
-        booleans.delete(name)
+        nonBooleans.add(name);
+        booleans.delete(name);
       }
     }
   }
-  return booleans
+  return booleans;
 }
 
 function formatScoreValue(value: number, isBoolean: boolean): string {
   if (isBoolean) {
-    if (value === 1) return green("PASS")
-    if (value === 0) return red("FAIL")
-    return yellow(`${Math.round(value * 100)}%`)
+    if (value === 1) return green("PASS");
+    if (value === 0) return red("FAIL");
+    return yellow(`${Math.round(value * 100)}%`);
   }
-  return value.toFixed(2)
+  return value.toFixed(2);
 }
 
 interface MetricGroup {
-  baseName: string
-  displayLabel: string
-  kind: "score" | "latency" | "tokens"
-  primary: number
-  primaryOp: string
-  min: number
-  max: number
-  p50: number
-  p95: number
-  isBoolean: boolean
+  baseName: string;
+  displayLabel: string;
+  kind: "score" | "latency" | "tokens";
+  primary: number;
+  primaryOp: string;
+  min: number;
+  max: number;
+  p50: number;
+  p95: number;
+  isBoolean: boolean;
 }
 
 function groupMetricAggregates(
   aggregates: Record<string, number>,
   booleanScores: Set<string>,
 ): MetricGroup[] {
-  const groups = new Map<string, Record<string, number>>()
+  const groups = new Map<string, Record<string, number>>();
 
   for (const [key, value] of Object.entries(aggregates)) {
-    const match = key.match(GROUPED_AGGREGATE_RE)
-    if (!match) continue
-    const baseName = match[1]!
-    const op = match[2]!
-    const group = groups.get(baseName) ?? {}
-    group[op] = value
-    groups.set(baseName, group)
+    const match = key.match(GROUPED_AGGREGATE_RE);
+    if (!match) continue;
+    const baseName = match[1]!;
+    const op = match[2]!;
+    const group = groups.get(baseName) ?? {};
+    group[op] = value;
+    groups.set(baseName, group);
   }
 
-  const result: MetricGroup[] = []
+  const result: MetricGroup[] = [];
   for (const [baseName, ops] of groups) {
-    let kind: "score" | "latency" | "tokens"
-    let primaryOp: string
+    let kind: "score" | "latency" | "tokens";
+    let primaryOp: string;
 
     if (baseName.startsWith("score.")) {
-      kind = "score"
-      primaryOp = "avg"
+      kind = "score";
+      primaryOp = "avg";
     } else if (
       baseName === "latency" ||
       baseName.startsWith("latency.") ||
       baseName === "ttfb" ||
       baseName.startsWith("ttfb.")
     ) {
-      kind = "latency"
-      primaryOp = "avg"
+      kind = "latency";
+      primaryOp = "avg";
     } else {
-      kind = "tokens"
-      primaryOp = "sum"
+      kind = "tokens";
+      primaryOp = "sum";
     }
 
-    const primary = ops[primaryOp]
-    if (primary === undefined) continue
+    const primary = ops[primaryOp];
+    if (primary === undefined) continue;
 
     const displayLabel =
-      kind === "score"
-        ? baseName.replace(/^score\./, "")
-        : displayMetricName(baseName)
+      kind === "score" ? baseName.replace(/^score\./, "") : displayMetricName(baseName);
 
     result.push({
       baseName,
@@ -503,51 +469,50 @@ function groupMetricAggregates(
       p50: ops.p50 ?? 0,
       p95: ops.p95 ?? 0,
       isBoolean: kind === "score" && booleanScores.has(baseName),
-    })
+    });
   }
 
   result.sort((a, b) => {
-    const priority = (g: MetricGroup) =>
-      g.kind === "score" ? 1 : g.kind === "latency" ? 2 : 3
-    return priority(a) - priority(b)
-  })
+    const priority = (g: MetricGroup) => (g.kind === "score" ? 1 : g.kind === "latency" ? 2 : 3);
+    return priority(a) - priority(b);
+  });
 
-  return result
+  return result;
 }
 
 function isGroupedAggregateKey(key: string): boolean {
-  return GROUPED_AGGREGATE_RE.test(key)
+  return GROUPED_AGGREGATE_RE.test(key);
 }
 
 function formatMetricGroupLine(group: MetricGroup, labelWidth: number): string {
   const fmtValue = (v: number) => {
-    if (group.kind === "score") return formatScoreValue(v, group.isBoolean)
-    return formatMetricValue(group.baseName, v)
-  }
+    if (group.kind === "score") return formatScoreValue(v, group.isBoolean);
+    return formatMetricValue(group.baseName, v);
+  };
 
-  const label = padRight(group.displayLabel, labelWidth)
-  const mainValue = padRight(fmtValue(group.primary), 10)
+  const label = padRight(group.displayLabel, labelWidth);
+  const mainValue = padRight(fmtValue(group.primary), 10);
 
-  let line: string
+  let line: string;
   if (group.min === group.max) {
-    line = `   ${label}${mainValue}`
+    line = `   ${label}${mainValue}`;
   } else {
     const stats = [
       `${dim("min")} ${fmtValue(group.min)}`,
       `${dim("max")} ${fmtValue(group.max)}`,
       `${dim("p50")} ${fmtValue(group.p50)}`,
       `${dim("p95")} ${fmtValue(group.p95)}`,
-    ].join("  ")
-    line = `   ${label}${mainValue}${stats}`
+    ].join("  ");
+    line = `   ${label}${mainValue}${stats}`;
   }
 
   const isInfoMetric =
     group.baseName === "latency.scoring" ||
     group.baseName === "latency.total" ||
-    group.baseName.startsWith("tokens.scorer")
-  if (isInfoMetric) return dim(stripAnsi(line))
+    group.baseName.startsWith("tokens.scorer");
+  if (isInfoMetric) return dim(stripAnsi(line));
 
-  return line
+  return line;
 }
 
 function appendGroupBaselineComparison(
@@ -555,14 +520,14 @@ function appendGroupBaselineComparison(
   group: MetricGroup,
   comp: ComparisonResult | undefined,
 ): string {
-  if (!comp || comp.change === 0) return line
+  if (!comp || comp.change === 0) return line;
 
   const fmtBaseline =
     group.kind === "score"
       ? formatScoreValue(comp.baseline, group.isBoolean)
-      : formatMetricValue(group.baseName, comp.baseline)
+      : formatMetricValue(group.baseName, comp.baseline);
 
-  return `${line}  ${dim("was")} ${padRight(fmtBaseline, 8)}${formatChange(comp)}`
+  return `${line}  ${dim("was")} ${padRight(fmtBaseline, 8)}${formatChange(comp)}`;
 }
 
 export function printSuiteReport(
@@ -571,338 +536,310 @@ export function printSuiteReport(
   options?: PrintSuiteReportOptions,
 ): void {
   // Header
-  console.log("")
-  console.log(heavy)
+  console.log("");
+  console.log(heavy);
   if (evalFile) {
-    console.log(bold(` EVAL: ${evalFile}`))
+    console.log(bold(` EVAL: ${evalFile}`));
   }
-  console.log(heavy)
-  console.log("")
+  console.log(heavy);
+  console.log("");
 
   // Suite title
   console.log(
     bold(
       ` ${report.suiteName} (${report.testCount} tests, pass rate: ${displayScore(report.passRate)})`,
     ),
-  )
-  console.log(` ${light}`)
+  );
+  console.log(` ${light}`);
 
-  printPerTestResults(report)
+  printPerTestResults(report);
 
   // Aggregates (skip NaN values)
-  const aggEntries = Object.entries(report.aggregates).filter(
-    ([, v]) => !Number.isNaN(v),
-  )
-  const aggComparisons = report.comparisons
-  const booleanScores = detectBooleanScores(report)
+  const aggEntries = Object.entries(report.aggregates).filter(([, v]) => !Number.isNaN(v));
+  const aggComparisons = report.comparisons;
+  const booleanScores = detectBooleanScores(report);
 
   if (aggEntries.length > 0) {
-    console.log(bold(" AGGREGATES"))
+    console.log(bold(" AGGREGATES"));
 
-    const metricGroups = groupMetricAggregates(report.aggregates, booleanScores)
-    const nonGroupedEntries = aggEntries.filter(
-      ([key]) => !isGroupedAggregateKey(key),
-    )
+    const metricGroups = groupMetricAggregates(report.aggregates, booleanScores);
+    const nonGroupedEntries = aggEntries.filter(([key]) => !isGroupedAggregateKey(key));
 
     const groupLabelWidth =
       metricGroups.length > 0
         ? Math.max(...metricGroups.map((g) => g.displayLabel.length), 12) + 2
-        : 0
+        : 0;
     const nonGroupedNameWidth =
-      nonGroupedEntries.length > 0
-        ? metricLabelWidth(nonGroupedEntries.map(([name]) => name))
-        : 0
-    const nameWidth = Math.max(groupLabelWidth, nonGroupedNameWidth)
+      nonGroupedEntries.length > 0 ? metricLabelWidth(nonGroupedEntries.map(([name]) => name)) : 0;
+    const nameWidth = Math.max(groupLabelWidth, nonGroupedNameWidth);
 
     for (const group of metricGroups) {
-      let line = formatMetricGroupLine(group, nameWidth)
-      const primaryKey = `${group.baseName}.${group.primaryOp}`
-      const comp = aggComparisons.find((c) => c.metric === primaryKey)
-      line = appendGroupBaselineComparison(line, group, comp)
-      console.log(line)
+      let line = formatMetricGroupLine(group, nameWidth);
+      const primaryKey = `${group.baseName}.${group.primaryOp}`;
+      const comp = aggComparisons.find((c) => c.metric === primaryKey);
+      line = appendGroupBaselineComparison(line, group, comp);
+      console.log(line);
     }
 
     for (const [name, value] of nonGroupedEntries) {
-      const label = displayMetricName(name)
-      const formatted = formatMetricValue(name, value)
-      const comp = aggComparisons.find((c) => c.metric === name)
-      let line = `   ${padRight(label, nameWidth)}${padRight(formatted, 10)}`
-      line = appendBaselineComparison(line, name, comp)
-      console.log(line)
+      const label = displayMetricName(name);
+      const formatted = formatMetricValue(name, value);
+      const comp = aggComparisons.find((c) => c.metric === name);
+      let line = `   ${padRight(label, nameWidth)}${padRight(formatted, 10)}`;
+      line = appendBaselineComparison(line, name, comp);
+      console.log(line);
     }
   }
 
   // Per-test changes — filter zero-change, use PASS/FAIL for boolean scores
-  const perTestFiltered: [string, ComparisonResult[]][] = []
+  const perTestFiltered: [string, ComparisonResult[]][] = [];
   for (const testName of Object.keys(report.perTestComparisons)) {
-    const allComps = report.perTestComparisons[testName]!
-    const changedComps = allComps.filter((c) => c.change !== 0)
+    const allComps = report.perTestComparisons[testName]!;
+    const changedComps = allComps.filter((c) => c.change !== 0);
     if (changedComps.length > 0) {
-      perTestFiltered.push([testName, changedComps])
+      perTestFiltered.push([testName, changedComps]);
     }
   }
 
   if (perTestFiltered.length > 0) {
-    console.log("")
-    console.log(
-      bold(
-        ` PER-TEST CHANGES (${perTestFiltered.length} of ${report.testCount})`,
-      ),
-    )
+    console.log("");
+    console.log(bold(` PER-TEST CHANGES (${perTestFiltered.length} of ${report.testCount})`));
 
-    const allFilteredComps = perTestFiltered.flatMap(([, comps]) => comps)
-    const testNameWidth = metricLabelWidth(
-      allFilteredComps.map((comp) => comp.metric),
-    )
+    const allFilteredComps = perTestFiltered.flatMap(([, comps]) => comps);
+    const testNameWidth = metricLabelWidth(allFilteredComps.map((comp) => comp.metric));
 
     for (const [testName, comps] of perTestFiltered) {
-      console.log(`   ${cyan(testName)}`)
+      console.log(`   ${cyan(testName)}`);
       for (const comp of comps) {
-        const label = displayMetricName(comp.metric)
-        const isBoolean =
-          comp.metric.startsWith("score.") && booleanScores.has(comp.metric)
+        const label = displayMetricName(comp.metric);
+        const isBoolean = comp.metric.startsWith("score.") && booleanScores.has(comp.metric);
 
         const formatted = isBoolean
           ? formatScoreValue(comp.current, true)
-          : formatMetricValue(comp.metric, comp.current)
+          : formatMetricValue(comp.metric, comp.current);
         const baseFormatted = isBoolean
           ? formatScoreValue(comp.baseline, true)
-          : formatMetricValue(comp.metric, comp.baseline)
+          : formatMetricValue(comp.metric, comp.baseline);
 
-        let line = `     ${padRight(label, testNameWidth)}${padRight(formatted, 10)}`
-        line += `${dim("was")} ${padRight(baseFormatted, 10)}`
-        line += formatChange(comp)
+        let line = `     ${padRight(label, testNameWidth)}${padRight(formatted, 10)}`;
+        line += `${dim("was")} ${padRight(baseFormatted, 10)}`;
+        line += formatChange(comp);
 
-        console.log(line)
+        console.log(line);
       }
     }
   }
 
   if (options?.verbose) {
-    printVerboseScorerDetails(report)
+    printVerboseScorerDetails(report);
   }
 
-  console.log("")
+  console.log("");
 }
 
 export function printVariantComparisonTables(reports: SuiteReport[]): void {
   const variantEntries = reports
     .map(asVariantSuiteEntry)
-    .filter((entry): entry is VariantSuiteEntry => entry !== null)
+    .filter((entry): entry is VariantSuiteEntry => entry !== null);
 
   if (variantEntries.length === 0) {
-    return
+    return;
   }
 
-  const groups = new Map<string, VariantSuiteEntry[]>()
+  const groups = new Map<string, VariantSuiteEntry[]>();
   for (const entry of variantEntries) {
-    const existing = groups.get(entry.baseSuiteName) ?? []
-    existing.push(entry)
-    groups.set(entry.baseSuiteName, existing)
+    const existing = groups.get(entry.baseSuiteName) ?? [];
+    existing.push(entry);
+    groups.set(entry.baseSuiteName, existing);
   }
 
   for (const [baseSuiteName, entries] of groups) {
     if (entries.length < 2) {
-      continue
+      continue;
     }
 
-    entries.sort((left, right) =>
-      left.variantName.localeCompare(right.variantName),
-    )
+    entries.sort((left, right) => left.variantName.localeCompare(right.variantName));
 
-    const metricNames = commonAggregateMetrics(entries)
+    const metricNames = commonAggregateMetrics(entries);
     if (metricNames.length === 0) {
-      continue
+      continue;
     }
 
     const metricColumnWidth = Math.max(
       "Metric".length,
       ...metricNames.map((metricName) => displayMetricName(metricName).length),
-    )
+    );
     const variantColumnWidths = entries.map((entry) => {
-      let width = entry.variantName.length
+      let width = entry.variantName.length;
       for (const metricName of metricNames) {
-        const metricValue = entry.report.aggregates[metricName]
+        const metricValue = entry.report.aggregates[metricName];
         if (metricValue === undefined) {
-          width = Math.max(width, "N/A".length)
-          continue
+          width = Math.max(width, "N/A".length);
+          continue;
         }
-        width = Math.max(
-          width,
-          stripAnsi(formatMetricValue(metricName, metricValue)).length,
-        )
+        width = Math.max(width, stripAnsi(formatMetricValue(metricName, metricValue)).length);
       }
-      return width
-    })
-    const separator = buildTableSeparator(
-      metricColumnWidth,
-      variantColumnWidths,
-    )
+      return width;
+    });
+    const separator = buildTableSeparator(metricColumnWidth, variantColumnWidths);
 
-    console.log("")
-    console.log(bold(` VARIANT COMPARISON: ${baseSuiteName}`))
-    console.log(`   ${separator}`)
+    console.log("");
+    console.log(bold(` VARIANT COMPARISON: ${baseSuiteName}`));
+    console.log(`   ${separator}`);
     console.log(
       `   ${formatTableRow(
         ["Metric", ...entries.map((entry) => entry.variantName)],
         [metricColumnWidth, ...variantColumnWidths],
       )}`,
-    )
-    console.log(`   ${separator}`)
+    );
+    console.log(`   ${separator}`);
 
     for (const metricName of metricNames) {
       const values = entries.map((entry) => {
-        const metricValue = entry.report.aggregates[metricName]
+        const metricValue = entry.report.aggregates[metricName];
         if (metricValue === undefined) {
-          return "N/A"
+          return "N/A";
         }
-        return formatMetricValue(metricName, metricValue)
-      })
+        return formatMetricValue(metricName, metricValue);
+      });
 
       console.log(
         `   ${formatTableRow(
           [displayMetricName(metricName), ...values],
           [metricColumnWidth, ...variantColumnWidths],
         )}`,
-      )
+      );
     }
 
-    console.log(`   ${separator}`)
+    console.log(`   ${separator}`);
   }
 }
 
 export function printSummary(reports: SuiteReport[]): void {
-  const summary = summarizeReports(reports)
-  const parts: string[] = []
+  const summary = summarizeReports(reports);
+  const parts: string[] = [];
 
   if (!summary.hasBaseline) {
-    parts.push(dim("no baseline"))
+    parts.push(dim("no baseline"));
   } else if (summary.regressions > 0) {
-    parts.push(red(`${summary.regressions} regressions`))
+    parts.push(red(`${summary.regressions} regressions`));
   } else {
-    parts.push(green("0 regressions"))
+    parts.push(green("0 regressions"));
   }
 
-  if (summary.hasBaseline) parts.push(`${summary.metricsOk} metrics OK`)
+  if (summary.hasBaseline) parts.push(`${summary.metricsOk} metrics OK`);
 
-  console.log(heavy)
-  console.log(bold(` SUMMARY: ${parts.join(", ")}`))
-  console.log(heavy)
+  console.log(heavy);
+  console.log(bold(` SUMMARY: ${parts.join(", ")}`));
+  console.log(heavy);
 }
 
 interface SummaryCounts {
-  regressions: number
-  metricsOk: number
-  hasBaseline: boolean
+  regressions: number;
+  metricsOk: number;
+  hasBaseline: boolean;
 }
 
 function summarizeReports(reports: SuiteReport[]): SummaryCounts {
-  let regressions = 0
-  let metricsOk = 0
-  let hasBaseline = false
+  let regressions = 0;
+  let metricsOk = 0;
+  let hasBaseline = false;
 
   for (const report of reports) {
-    if (report.comparisons.length > 0) hasBaseline = true
+    if (report.comparisons.length > 0) hasBaseline = true;
     for (const comp of report.comparisons) {
-      if (comp.regressed) regressions++
-      else metricsOk++
+      if (comp.regressed) regressions++;
+      else metricsOk++;
     }
 
     for (const comps of Object.values(report.perTestComparisons)) {
       for (const comp of comps) {
-        if (comp.regressed) regressions++
-        else metricsOk++
+        if (comp.regressed) regressions++;
+        else metricsOk++;
       }
     }
   }
 
-  return { regressions, metricsOk, hasBaseline }
+  return { regressions, metricsOk, hasBaseline };
 }
 
 // --- Internal utility ---
 
 function asVariantSuiteEntry(report: SuiteReport): VariantSuiteEntry | null {
-  const match = report.suiteName.match(/^(.*)\s\[(.+)\]$/)
-  const baseSuiteName = match?.[1]?.trim()
-  const variantName = match?.[2]?.trim()
+  const match = report.suiteName.match(/^(.*)\s\[(.+)\]$/);
+  const baseSuiteName = match?.[1]?.trim();
+  const variantName = match?.[2]?.trim();
 
   if (!baseSuiteName || !variantName) {
-    return null
+    return null;
   }
 
   return {
     baseSuiteName,
     variantName,
     report,
-  }
+  };
 }
 
 function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
-  const [firstEntry, ...restEntries] = entries
+  const [firstEntry, ...restEntries] = entries;
   if (!firstEntry) {
-    return []
+    return [];
   }
 
-  const metricSet = new Set(Object.keys(firstEntry.report.aggregates))
+  const metricSet = new Set(Object.keys(firstEntry.report.aggregates));
   for (const entry of restEntries) {
     for (const metricName of [...metricSet]) {
       if (!(metricName in entry.report.aggregates)) {
-        metricSet.delete(metricName)
+        metricSet.delete(metricName);
       }
     }
   }
 
-  const metrics = [...metricSet]
+  const metrics = [...metricSet];
   // Only show .avg for scores in variant comparison (min/max/p50/p95 shown inline)
   const filtered = metrics.filter((name) => {
-    if (name.startsWith("score.")) return name.endsWith(".avg")
-    if (name.startsWith("latency") || name.startsWith("ttfb"))
-      return name.endsWith(".avg")
-    if (name.startsWith("tokens.")) return name.endsWith(".sum")
-    return true
-  })
+    if (name.startsWith("score.")) return name.endsWith(".avg");
+    if (name.startsWith("latency") || name.startsWith("ttfb")) return name.endsWith(".avg");
+    if (name.startsWith("tokens.")) return name.endsWith(".sum");
+    return true;
+  });
   filtered.sort((left, right) => {
-    const leftPriority = metricPriority(left)
-    const rightPriority = metricPriority(right)
+    const leftPriority = metricPriority(left);
+    const rightPriority = metricPriority(right);
     if (leftPriority !== rightPriority) {
-      return leftPriority - rightPriority
+      return leftPriority - rightPriority;
     }
-    return displayMetricName(left).localeCompare(displayMetricName(right))
-  })
+    return displayMetricName(left).localeCompare(displayMetricName(right));
+  });
 
-  return filtered
+  return filtered;
 }
 
 function metricPriority(metricName: string): number {
-  if (metricName.startsWith("score.") && metricName.endsWith(".avg")) return 1
-  if (metricName === "latency.avg") return 2
-  if (metricName === "latency.scoring.avg") return 2.1
-  if (metricName === "latency.total.avg") return 2.2
-  if (metricName === "test.pass_rate") return 3
-  if (metricName === "error.rate") return 4
-  if (metricName.startsWith("tokens.scorer.") && metricName.endsWith(".sum"))
-    return 5.1
-  if (metricName.startsWith("tokens.") && metricName.endsWith(".sum")) return 5
-  return 10
+  if (metricName.startsWith("score.") && metricName.endsWith(".avg")) return 1;
+  if (metricName === "latency.avg") return 2;
+  if (metricName === "latency.scoring.avg") return 2.1;
+  if (metricName === "latency.total.avg") return 2.2;
+  if (metricName === "test.pass_rate") return 3;
+  if (metricName === "error.rate") return 4;
+  if (metricName.startsWith("tokens.scorer.") && metricName.endsWith(".sum")) return 5.1;
+  if (metricName.startsWith("tokens.") && metricName.endsWith(".sum")) return 5;
+  return 10;
 }
 
-function buildTableSeparator(
-  metricWidth: number,
-  variantWidths: number[],
-): string {
-  const segments = [metricWidth, ...variantWidths].map((width) =>
-    "-".repeat(width + 2),
-  )
-  return `+${segments.join("+")}+`
+function buildTableSeparator(metricWidth: number, variantWidths: number[]): string {
+  const segments = [metricWidth, ...variantWidths].map((width) => "-".repeat(width + 2));
+  return `+${segments.join("+")}+`;
 }
 
 function formatTableRow(cells: string[], widths: number[]): string {
-  const padded = cells.map((cell, index) => padRight(cell, widths[index] ?? 0))
-  return `| ${padded.join(" | ")} |`
+  const padded = cells.map((cell, index) => padRight(cell, widths[index] ?? 0));
+  return `| ${padded.join(" | ")} |`;
 }
 
 function padRight(s: string, width: number): string {
-  const visibleLength = stripAnsi(s).length
-  if (visibleLength >= width) return s
-  return s + " ".repeat(width - visibleLength)
+  const visibleLength = stripAnsi(s).length;
+  if (visibleLength >= width) return s;
+  return s + " ".repeat(width - visibleLength);
 }
