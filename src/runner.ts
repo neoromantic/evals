@@ -15,7 +15,7 @@ export interface RunEvalFilesOptions {
 }
 
 // WARNING: console.log and Bun.write can cut piped stdout at 64 KiB on exit; keep writeSync.
-function writeStdoutSync(text: string): void {
+function writeStdoutSync(text: string) {
   const buffer = Buffer.from(text);
   let offset = 0;
   while (offset < buffer.length) {
@@ -28,12 +28,12 @@ function writeStdoutSync(text: string): void {
   }
 }
 
-function parseVersion(version: string): [number, number, number] {
+function parseVersion(version: string) {
   const [major = "0", minor = "0", patch = "0"] = version.split(".");
   return [Number(major), Number(minor), Number(patch)];
 }
 
-export function isVersionLessThan(version: string, minimum: string): boolean {
+export function isVersionLessThan(version: string, minimum: string) {
   const current = parseVersion(version);
   const target = parseVersion(minimum);
 
@@ -47,7 +47,7 @@ export function isVersionLessThan(version: string, minimum: string): boolean {
   return false;
 }
 
-export function loadDotenvEnv(cwd: string): Record<string, string> {
+export function loadDotenvEnv(cwd: string) {
   const loaded: Record<string, string> = {};
 
   for (const filename of DOTENV_FILENAMES) {
@@ -62,7 +62,7 @@ export function loadDotenvEnv(cwd: string): Record<string, string> {
   return loaded;
 }
 
-function parseDotenvContent(content: string): Record<string, string> {
+function parseDotenvContent(content: string) {
   const parsed: Record<string, string> = {};
 
   for (const rawLine of content.split(/\r?\n/)) {
@@ -89,7 +89,7 @@ function parseDotenvContent(content: string): Record<string, string> {
   return parsed;
 }
 
-function parseDotenvValue(rawValue: string): string {
+function parseDotenvValue(rawValue: string) {
   const quote = rawValue[0];
   if ((quote === '"' || quote === "'") && rawValue.endsWith(quote)) {
     const inner = rawValue.slice(1, -1);
@@ -102,7 +102,7 @@ function parseDotenvValue(rawValue: string): string {
   return rawValue.replace(/\s+#.*$/, "").trim();
 }
 
-export async function discoverEvalFiles(cwd: string): Promise<string[]> {
+export async function discoverEvalFiles(cwd: string) {
   const glob = new Glob("**/*.eval.ts");
   const evalFiles: string[] = [];
 
@@ -122,11 +122,11 @@ export function buildBunTestArgs(
   evalFiles: string[],
   bunArgs: string[],
   preloadPath = resolve(import.meta.dir, "preload.ts"),
-): string[] {
+) {
   return ["test", "--preload", preloadPath, "--timeout", "60000", ...evalFiles, ...bunArgs];
 }
 
-function emitNoEvalFilesFound(jsonOutput: boolean): void {
+function emitNoEvalFilesFound(jsonOutput: boolean) {
   if (jsonOutput) {
     console.log(
       JSON.stringify(
@@ -151,7 +151,7 @@ function emitNoEvalFilesFound(jsonOutput: boolean): void {
   console.log("No eval files found (*.eval.ts)");
 }
 
-function printDiscoveredEvalFiles(cwd: string, evalFiles: string[]): void {
+function printDiscoveredEvalFiles(cwd: string, evalFiles: string[]) {
   console.log(`Found ${evalFiles.length} eval file(s):`);
   for (const evalFile of evalFiles) {
     console.log(`  ${relative(cwd, evalFile)}`);
@@ -164,7 +164,7 @@ function appendFailureDetails(
   exitCode: number,
   bunStdout: string,
   bunStderr: string,
-): unknown {
+) {
   if (exitCode === 0 || !payload || typeof payload !== "object") {
     return payload;
   }
@@ -178,7 +178,7 @@ function appendFailureDetails(
   };
 }
 
-export async function runEvalFiles(options: RunEvalFilesOptions): Promise<number> {
+export async function runEvalFiles(options: RunEvalFilesOptions) {
   const { cwd, evalFiles, bunArgs, verboseReporting, jsonOutput } = options;
 
   if (!jsonOutput && isVersionLessThan(Bun.version, MIN_BUN_VERSION_FOR_CONCURRENT_CASES)) {

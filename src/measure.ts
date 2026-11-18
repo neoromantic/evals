@@ -1,7 +1,7 @@
 import { collector } from "./collector";
 import type { MeasureContext, MeasureResult, SuiteConfig } from "./types";
 
-export async function measure<T>(fn: (m: MeasureContext) => Promise<T>): Promise<MeasureResult<T>> {
+export async function measure<T>(fn: (m: MeasureContext) => Promise<T>) {
   const start = performance.now();
   let error = false;
   let taskEndTimestamp: number | undefined;
@@ -50,19 +50,20 @@ export async function measure<T>(fn: (m: MeasureContext) => Promise<T>): Promise
     }
   }
 
-  return {
+  const measured: MeasureResult<T> = {
     result,
     metrics: {
       latency: end - start,
       error,
     },
   };
+  return measured;
 }
 
-export function score(name: string, value: number): void {
+export function score(name: string, value: number) {
   collector.recordScore(name, value);
 }
 
-export function suite(name: string, config: SuiteConfig): void {
+export function suite(name: string, config: SuiteConfig) {
   collector.configureSuite(name, config);
 }

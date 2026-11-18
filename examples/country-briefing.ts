@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import { traceModel } from "@goodit/evals";
 import { generateText } from "ai";
 
-export async function generateCountryBriefing(country: string): Promise<string> {
+export async function generateCountryBriefing(country: string) {
   const prompt = [
     "You are a factual research assistant.",
     `Write a 4-line briefing about ${country}.`,

@@ -13,8 +13,8 @@ interface LLMJudgeScorerOpts<TInput = string, TOutput = string, TExpected = TOut
 
 export function createLLMJudgeScorer<TInput = string, TOutput = string, TExpected = TOutput>(
   opts: LLMJudgeScorerOpts<TInput, TOutput, TExpected>,
-): Scorer<TInput, TOutput, TExpected> {
-  return {
+) {
+  const scorer: Scorer<TInput, TOutput, TExpected> = {
     name: opts.name,
     description: opts.description,
     kind: "judge",
@@ -42,6 +42,7 @@ export function createLLMJudgeScorer<TInput = string, TOutput = string, TExpecte
       return { score: opts.errorScore ?? 0 };
     },
   };
+  return scorer;
 }
 
 interface WrapAutoevalOpts {
@@ -57,7 +58,7 @@ interface WrapAutoevalOpts {
   retryDelayMs?: number;
 }
 
-export function wrapAutoeval(opts: WrapAutoevalOpts): Scorer<string, string, string> {
+export function wrapAutoeval(opts: WrapAutoevalOpts) {
   return createLLMJudgeScorer<string, string, string>({
     name: opts.name,
     description: opts.description,
@@ -83,7 +84,7 @@ interface SemanticMatchOpts {
   threshold?: number;
 }
 
-export function SemanticMatch(opts: SemanticMatchOpts): Scorer<string, string, string> {
+export function SemanticMatch(opts: SemanticMatchOpts) {
   return createLLMJudgeScorer<string, string, string>({
     name: "SemanticMatch",
     description: "LLM judge: semantic similarity between output and expected",
@@ -124,7 +125,7 @@ interface MatchesIntentOpts {
   intent: string;
 }
 
-export function MatchesIntent(opts: MatchesIntentOpts): Scorer<string, string> {
+export function MatchesIntent(opts: MatchesIntentOpts) {
   return createLLMJudgeScorer<string, string>({
     name: "MatchesIntent",
     description: `LLM judge: output matches intent "${opts.intent}"`,
@@ -158,7 +159,7 @@ interface SemanticContainsOpts {
   concepts: string[];
 }
 
-export function SemanticContains(opts: SemanticContainsOpts): Scorer<string, string> {
+export function SemanticContains(opts: SemanticContainsOpts) {
   return createLLMJudgeScorer<string, string>({
     name: "SemanticContains",
     description: `LLM judge: output contains concepts [${opts.concepts.join(", ")}]`,
@@ -198,13 +199,13 @@ export function SemanticContains(opts: SemanticContainsOpts): Scorer<string, str
 
 let _aiDeps: Promise<[typeof import("ai"), typeof import("zod")]> | undefined;
 
-function loadAiDeps(): Promise<[typeof import("ai"), typeof import("zod")]> {
+function loadAiDeps() {
   if (!_aiDeps) {
     _aiDeps = Promise.all([import("ai"), import("zod")]);
   }
   return _aiDeps;
 }
 
-function sleep(ms: number): Promise<void> {
+function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

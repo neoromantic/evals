@@ -4,13 +4,13 @@ import type { TraceEntry } from "./types";
 
 const traceStorage = new AsyncLocalStorage<TraceEntry[]>();
 
-function tokenCount(v: unknown): number {
+function tokenCount(v: unknown) {
   if (typeof v === "number") return v;
   if (v && typeof v === "object" && "total" in v) return (v as any).total;
   return 0;
 }
 
-export function reportTrace(entry: TraceEntry): void {
+export function reportTrace(entry: TraceEntry) {
   const traces = traceStorage.getStore();
   if (traces) {
     traces.push(entry);
@@ -24,7 +24,7 @@ export function reportTrace(entry: TraceEntry): void {
   }
 }
 
-export function traceModel(model: any): any {
+export function traceModel(model: any) {
   if (process.env.EVAL_TRACE !== "1" && !process.env.EVAL_FILES) {
     return model;
   }
@@ -99,9 +99,11 @@ export function traceModel(model: any): any {
   }
 }
 
-export function runWithTraces<T>(
-  fn: () => T | Promise<T>,
-): Promise<{ result: T; traces: TraceEntry[] }> {
+export function runWithTraces<T>(fn: () => T | Promise<T>) {
   const traces: TraceEntry[] = [];
-  return traceStorage.run(traces, async () => ({ result: await fn(), traces }));
+  const run: Promise<{ result: T; traces: TraceEntry[] }> = traceStorage.run(traces, async () => ({
+    result: await fn(),
+    traces,
+  }));
+  return run;
 }

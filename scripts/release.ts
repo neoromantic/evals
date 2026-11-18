@@ -178,19 +178,21 @@ function fetchTags() {
   }
 }
 
-function findReleaseAnchor(fromRef?: string): ReleaseAnchor {
+function findReleaseAnchor(fromRef?: string) {
   if (fromRef) {
-    return { ref: fromRef, version: null, source: "commit" };
+    const anchor: ReleaseAnchor = { ref: fromRef, version: null, source: "commit" };
+    return anchor;
   }
 
   const latestTag = gitOptional(["describe", "--tags", "--abbrev=0", "--match", "v*"]);
 
   if (latestTag) {
-    return {
+    const anchor: ReleaseAnchor = {
       ref: latestTag,
       version: latestTag.replace(/^v/, ""),
       source: "tag",
     };
+    return anchor;
   }
 
   const log = gitOptional(["log", "--format=%H%x00%s", "-n", "200"]);
@@ -211,19 +213,21 @@ function findReleaseAnchor(fromRef?: string): ReleaseAnchor {
       const match = subject.match(/\bv([0-9]+\.[0-9]+\.[0-9]+)\b/);
 
       if (match) {
-        return { ref: hash, version: match[1], source: "commit" };
+        const anchor: ReleaseAnchor = { ref: hash, version: match[1], source: "commit" };
+        return anchor;
       }
     }
   }
 
-  return {
+  const anchor: ReleaseAnchor = {
     ref: git(["rev-list", "--max-parents=0", "HEAD"]).split("\n")[0],
     version: null,
     source: "root",
   };
+  return anchor;
 }
 
-function getCommitsSince(ref: string): CommitEntry[] {
+function getCommitsSince(ref: string) {
   const raw = gitOptional(["log", `${ref}..HEAD`, "--format=%H%x00%s%x00%b%x00---END---"]);
 
   if (!raw) {
@@ -245,7 +249,7 @@ function getCommitsSince(ref: string): CommitEntry[] {
     .filter((entry) => entry.hash && entry.subject);
 }
 
-function formatCommitLog(commits: CommitEntry[]): string {
+function formatCommitLog(commits: CommitEntry[]) {
   return commits
     .map((commit) => {
       const body = commit.body ? `\n${indent(commit.body, "  ")}` : "";
@@ -254,7 +258,7 @@ function formatCommitLog(commits: CommitEntry[]): string {
     .join("\n");
 }
 
-function indent(value: string, prefix: string): string {
+function indent(value: string, prefix: string) {
   return value
     .split(/\r?\n/)
     .map((line) => `${prefix}${line}`)
@@ -270,7 +274,7 @@ async function generateReleaseDraft(input: {
   commitLog: string;
   changedFiles: string;
   readme: string;
-}): Promise<ReleaseDraft> {
+}) {
   const schema = {
     type: "object",
     additionalProperties: false,
@@ -339,7 +343,7 @@ function buildReleasePrompt(input: {
   anchor: ReleaseAnchor;
   commitLog: string;
   changedFiles: string;
-}): string {
+}) {
   return [
     "You are preparing a release draft for the npm package @goodit/evals.",
     "Use only the commit log, changed-file list, and release metadata provided here.",
@@ -381,7 +385,7 @@ async function generateReadmeRewrite(input: {
   changedFiles: string;
   releaseSummary: string;
   highlights: string[];
-}): Promise<string> {
+}) {
   const schema = {
     type: "object",
     additionalProperties: false,
@@ -426,11 +430,11 @@ async function generateReadmeRewrite(input: {
   }
 }
 
-function getLlmProvider(): LlmProvider {
+function getLlmProvider() {
   const value = process.env.GOODIT_RELEASE_LLM_PROVIDER?.trim() ?? "codex";
 
   if (value === "codex" || value === "claude" || value === "command") {
-    return value;
+    return value satisfies LlmProvider;
   }
 
   throw new Error(
@@ -438,7 +442,7 @@ function getLlmProvider(): LlmProvider {
   );
 }
 
-async function runCodex(prompt: string, schema: object): Promise<any> {
+async function runCodex(prompt: string, schema: object) {
   const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-codex-"));
   const schemaPath = join(tempDir, "schema.json");
   const outputPath = join(tempDir, "output.json");
@@ -493,7 +497,7 @@ async function runCodex(prompt: string, schema: object): Promise<any> {
   }
 }
 
-async function runClaude(prompt: string, schema: object): Promise<any> {
+async function runClaude(prompt: string, schema: object) {
   const tempDir = mkdtempSync(join(tmpdir(), "goodit-release-claude-"));
   const command = [
     "claude",
@@ -539,7 +543,7 @@ async function runClaude(prompt: string, schema: object): Promise<any> {
   }
 }
 
-async function runCustomCommand(prompt: string): Promise<any> {
+async function runCustomCommand(prompt: string) {
   const llmCommand = process.env.GOODIT_RELEASE_LLM_COMMAND?.trim();
 
   if (!llmCommand) {
@@ -567,7 +571,7 @@ async function runCustomCommand(prompt: string): Promise<any> {
   return parseJsonPayload(proc.stdout ?? "");
 }
 
-function parseJsonPayload(raw: string): any {
+function parseJsonPayload(raw: string) {
   const trimmed = raw.trim();
   const direct = tryParseJson(trimmed);
 
@@ -592,7 +596,7 @@ function parseJsonPayload(raw: string): any {
   throw new Error(`Could not parse LLM output as JSON:\n${trimmed}`);
 }
 
-function parseClaudeJsonPayload(raw: string): any {
+function parseClaudeJsonPayload(raw: string) {
   const payload = parseJsonPayload(raw);
 
   if (payload && typeof payload === "object") {
@@ -608,7 +612,7 @@ function parseClaudeJsonPayload(raw: string): any {
   return payload;
 }
 
-function tryParseJson(value: string): any {
+function tryParseJson(value: string) {
   try {
     return JSON.parse(value);
   } catch {
@@ -616,7 +620,7 @@ function tryParseJson(value: string): any {
   }
 }
 
-function validateReleasePlan(value: any): ReleasePlanDraft {
+function validateReleasePlan(value: any) {
   if (
     !value ||
     typeof value.releaseSummary !== "string" ||
@@ -637,7 +641,7 @@ function validateReleasePlan(value: any): ReleasePlanDraft {
   };
 }
 
-function validateReadmeRewrite(value: any): string {
+function validateReadmeRewrite(value: any) {
   if (!value || typeof value.readmeContent !== "string" || !value.readmeContent.trim()) {
     throw new Error(`Invalid README rewrite payload: ${JSON.stringify(value, null, 2)}`);
   }
@@ -677,11 +681,11 @@ function printPlan(input: {
   console.log(input.draft.changelogSection.trim());
 }
 
-function git(args: string[]): string {
+function git(args: string[]) {
   return run("git", args);
 }
 
-function gitOptional(args: string[]): string {
+function gitOptional(args: string[]) {
   const proc = spawnSync("git", args, {
     cwd,
     stdio: ["ignore", "pipe", "pipe"],
@@ -695,7 +699,7 @@ function gitOptional(args: string[]): string {
   return (proc.stdout ?? "").trim();
 }
 
-function gitSuccess(args: string[]): boolean {
+function gitSuccess(args: string[]) {
   const proc = spawnSync("git", args, {
     cwd,
     stdio: ["ignore", "ignore", "ignore"],
@@ -703,7 +707,7 @@ function gitSuccess(args: string[]): boolean {
   return proc.status === 0;
 }
 
-function run(bin: string, args: string[]): string {
+function run(bin: string, args: string[]) {
   const proc = spawnSync(bin, args, {
     cwd,
     stdio: ["ignore", "pipe", "inherit"],
@@ -717,7 +721,7 @@ function run(bin: string, args: string[]): string {
   return (proc.stdout ?? "").trim();
 }
 
-function readJsonFile(path: string): unknown {
+function readJsonFile(path: string) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
@@ -725,11 +729,11 @@ function writeJsonFile(path: string, value: unknown) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-function ensureTrailingNewline(value: string): string {
+function ensureTrailingNewline(value: string) {
   return value.endsWith("\n") ? value : `${value}\n`;
 }
 
-function getLlmTimeoutMs(): number {
+function getLlmTimeoutMs() {
   const raw = process.env.GOODIT_RELEASE_LLM_TIMEOUT_MS?.trim();
   const parsed = raw ? Number(raw) : Number.NaN;
 

@@ -9,7 +9,7 @@ class Collector {
   private currentEntryStorage: AsyncLocalStorage<TestMetrics> = new AsyncLocalStorage();
   private legacyCurrentEntry: TestMetrics | null = null;
 
-  registerSuite(suiteName: string, config: SuiteConfig, evalFilePath?: string): string {
+  registerSuite(suiteName: string, config: SuiteConfig, evalFilePath?: string) {
     const suiteKey = this.createSuiteKey(suiteName, evalFilePath);
     this.suiteConfigs.set(suiteKey, config);
     this.suiteNames.set(suiteKey, suiteName);
@@ -19,28 +19,28 @@ class Collector {
     return suiteKey;
   }
 
-  configureSuite(name: string, config: SuiteConfig): void {
+  configureSuite(name: string, config: SuiteConfig) {
     this.suiteConfigs.set(name, config);
     this.suiteNames.set(name, name);
   }
 
-  getSuiteConfig(suiteKey: string): SuiteConfig | undefined {
+  getSuiteConfig(suiteKey: string) {
     return this.suiteConfigs.get(suiteKey);
   }
 
-  getSuiteName(suiteKey: string): string | undefined {
+  getSuiteName(suiteKey: string) {
     return this.suiteNames.get(suiteKey);
   }
 
-  setEvalFile(suiteKey: string, filePath: string): void {
+  setEvalFile(suiteKey: string, filePath: string) {
     this.evalFiles.set(suiteKey, filePath);
   }
 
-  getEvalFile(suiteKey: string): string | undefined {
+  getEvalFile(suiteKey: string) {
     return this.evalFiles.get(suiteKey);
   }
 
-  beginTest(suiteKeyOrName: string, suiteNameOrTestName: string, maybeTestName?: string): void {
+  beginTest(suiteKeyOrName: string, suiteNameOrTestName: string, maybeTestName?: string) {
     const suiteKey = suiteKeyOrName;
     const suiteName = maybeTestName ? suiteNameOrTestName : suiteKeyOrName;
     const testName = maybeTestName ?? suiteNameOrTestName;
@@ -50,39 +50,30 @@ class Collector {
     this.legacyCurrentEntry = entry;
   }
 
-  async runTest<T>(
-    suiteKey: string,
-    suiteName: string,
-    testName: string,
-    fn: () => Promise<T>,
-  ): Promise<T> {
+  async runTest<T>(suiteKey: string, suiteName: string, testName: string, fn: () => Promise<T>) {
     const entry = this.createTestEntry(suiteKey, suiteName, testName);
     this.testResults.push(entry);
 
     return this.currentEntryStorage.run(entry, fn);
   }
 
-  endTest(): void {
+  endTest() {
     this.legacyCurrentEntry = null;
   }
 
-  recordMetric(name: string, value: number, _unit?: string): void {
+  recordMetric(name: string, value: number, _unit?: string) {
     const entry = this.currentEntry();
     if (!entry) return;
     entry.metrics[name] = value;
   }
 
-  recordScore(name: string, value: number): void {
+  recordScore(name: string, value: number) {
     const entry = this.currentEntry();
     if (!entry) return;
     entry.metrics[`score.${name}`] = value;
   }
 
-  recordTokens(usage: {
-    promptTokens: number;
-    completionTokens: number;
-    totalTokens?: number;
-  }): void {
+  recordTokens(usage: { promptTokens: number; completionTokens: number; totalTokens?: number }) {
     const entry = this.currentEntry();
     if (!entry) return;
     const phase = entry._phase;
@@ -98,25 +89,25 @@ class Collector {
     entry.metrics[`${prefix}.total`] = currentTotal + nextTotal;
   }
 
-  setPhase(phase: "task" | "scoring"): void {
+  setPhase(phase: "task" | "scoring") {
     const entry = this.currentEntry();
     if (!entry) return;
     entry._phase = phase;
   }
 
-  setWeight(weight: number): void {
+  setWeight(weight: number) {
     const entry = this.currentEntry();
     if (!entry) return;
     entry.weight = weight;
   }
 
-  setTestPassed(passed: boolean): void {
+  setTestPassed(passed: boolean) {
     const entry = this.currentEntry();
     if (!entry) return;
     entry.passed = passed;
   }
 
-  setTestContext(context: { input: unknown; output: unknown; expected?: unknown }): void {
+  setTestContext(context: { input: unknown; output: unknown; expected?: unknown }) {
     const entry = this.currentEntry();
     if (!entry) return;
     entry.input = context.input;
@@ -124,31 +115,31 @@ class Collector {
     entry.expected = context.expected;
   }
 
-  addScorerResult(result: ScorerResult): void {
+  addScorerResult(result: ScorerResult) {
     const entry = this.currentEntry();
     if (!entry) return;
     entry.scorerResults.push(result);
   }
 
-  getTestResults(): TestMetrics[] {
+  getTestResults() {
     return this.testResults;
   }
 
-  getTestResultsForSuite(suiteKey: string): TestMetrics[] {
+  getTestResultsForSuite(suiteKey: string) {
     return this.testResults.filter((test) => test.suiteKey === suiteKey);
   }
 
-  getSuiteKeys(): string[] {
+  getSuiteKeys() {
     return [...new Set(this.testResults.map((test) => test.suiteKey))];
   }
 
-  getSuiteNames(): string[] {
+  getSuiteNames() {
     return this.getSuiteKeys()
       .map((suiteKey) => this.suiteNames.get(suiteKey) ?? suiteKey)
       .filter((suiteName) => suiteName.length > 0);
   }
 
-  reset(): void {
+  reset() {
     this.suiteConfigs.clear();
     this.suiteNames.clear();
     this.testResults = [];
@@ -156,7 +147,7 @@ class Collector {
     this.legacyCurrentEntry = null;
   }
 
-  private currentEntry(): TestMetrics | null {
+  private currentEntry() {
     const activeEntry = this.currentEntryStorage.getStore();
     if (activeEntry) return activeEntry;
 
@@ -168,7 +159,7 @@ class Collector {
     return null;
   }
 
-  private createSuiteKey(suiteName: string, evalFilePath?: string): string {
+  private createSuiteKey(suiteName: string, evalFilePath?: string) {
     const identity = evalFilePath ?? "<unknown>";
     const baseKey = `${identity}::${suiteName}`;
     if (!this.suiteConfigs.has(baseKey)) {
@@ -185,8 +176,8 @@ class Collector {
     return candidate;
   }
 
-  private createTestEntry(suiteKey: string, suiteName: string, testName: string): TestMetrics {
-    return {
+  private createTestEntry(suiteKey: string, suiteName: string, testName: string) {
+    const entry: TestMetrics = {
       suiteKey,
       suiteName,
       testName,
@@ -196,10 +187,11 @@ class Collector {
       scorerResults: [],
       _phase: "task",
     };
+    return entry;
   }
 }
 
-function numberMetric(value: number | boolean | undefined): number {
+function numberMetric(value: number | boolean | undefined) {
   return typeof value === "number" ? value : 0;
 }
 

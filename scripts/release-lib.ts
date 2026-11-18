@@ -8,7 +8,7 @@ export interface CommitEntry {
 
 const RELEASE_HEADING_RE = /^##\s+([0-9]+\.[0-9]+\.[0-9]+)\s+-\s+([0-9]{4}-[0-9]{2}-[0-9]{2})$/m;
 
-export function inferVersionBump(commits: CommitEntry[]): VersionBump {
+export function inferVersionBump(commits: CommitEntry[]) {
   let bump: VersionBump = "patch";
 
   for (const commit of commits) {
@@ -26,7 +26,7 @@ export function inferVersionBump(commits: CommitEntry[]): VersionBump {
   return bump;
 }
 
-export function bumpVersion(version: string, bump: VersionBump): string {
+export function bumpVersion(version: string, bump: VersionBump) {
   const match = version.match(/^(\d+)\.(\d+)\.(\d+)$/);
 
   if (!match) {
@@ -48,7 +48,7 @@ export function bumpVersion(version: string, bump: VersionBump): string {
   }
 }
 
-export function mergeChangelog(existing: string, section: string): string {
+export function mergeChangelog(existing: string, section: string) {
   const normalizedExisting = existing.trimEnd();
   const normalizedSection = section.trim();
 
@@ -71,7 +71,7 @@ export function mergeChangelog(existing: string, section: string): string {
   return `${prefix}${normalizedSection}\n\n${remainder}\n`;
 }
 
-export function extractChangelogSection(content: string, version: string): string | null {
+export function extractChangelogSection(content: string, version: string) {
   const lines = content.split(/\r?\n/);
   const heading = `## ${version} - `;
   const start = lines.findIndex((line) => line.startsWith(heading));
@@ -92,15 +92,13 @@ export function extractChangelogSection(content: string, version: string): strin
   return lines.slice(start, end).join("\n").trim();
 }
 
-export function parseReleaseHeading(section: string): {
-  version: string;
-  date: string;
-} {
+export function parseReleaseHeading(section: string) {
   const match = section.trim().match(RELEASE_HEADING_RE);
 
   if (!match) {
     throw new Error("Release section must start with `## <version> - <YYYY-MM-DD>`");
   }
 
-  return { version: match[1], date: match[2] };
+  const heading: { version: string; date: string } = { version: match[1], date: match[2] };
+  return heading;
 }

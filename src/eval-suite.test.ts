@@ -6,7 +6,7 @@ import { detectEvalFileFromStack, getAsyncSuiteTimeout } from "./eval-suite";
 
 const textDecoder = new TextDecoder();
 
-function combinedOutput(stdout: Uint8Array, stderr: Uint8Array): string {
+function combinedOutput(stdout: Uint8Array, stderr: Uint8Array) {
   return `${textDecoder.decode(stdout)}${textDecoder.decode(stderr)}`;
 }
 
@@ -205,7 +205,7 @@ describe("evalSuite async data integration", () => {
       averageScore: number | undefined;
     };
 
-    const runAndCapture = (): Snapshot => {
+    const runAndCapture = () => {
       rmSync(outputPath, { force: true });
 
       const run = Bun.spawnSync(["bun", "test", "--preload", preloadPath, evalPath], {
@@ -226,10 +226,11 @@ describe("evalSuite async data integration", () => {
       >;
       const suite = raw["deterministic mixed suite"]?.aggregates;
 
-      return {
+      const snapshot: Snapshot = {
         passRate: suite?.["test.pass_rate"],
         averageScore: suite?.["score.ExactMatch.avg"],
       };
+      return snapshot;
     };
 
     try {

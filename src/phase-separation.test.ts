@@ -11,7 +11,7 @@ afterEach(() => {
   collector.reset();
 });
 
-function makeTestMetrics(metrics: Record<string, number | boolean>, passed = true): TestMetrics {
+function makeTestMetrics(metrics: Record<string, number | boolean>, passed = true) {
   return {
     suiteKey: "suite::key",
     suiteName: "suite",
@@ -474,6 +474,6 @@ describe("ScorerKind propagation", () => {
   });
 });
 
-function sleep(ms: number): Promise<void> {
+function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

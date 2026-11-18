@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { aggregateMetrics } from "./aggregate";
 import type { TestMetrics } from "./types";
 
-function makeTestMetrics(metrics: Record<string, number | boolean>, passed: boolean): TestMetrics {
+function makeTestMetrics(metrics: Record<string, number | boolean>, passed: boolean) {
   return {
     suiteKey: "suite::key",
     suiteName: "suite",

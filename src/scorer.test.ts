@@ -71,7 +71,7 @@ async function scoreValue(
     | number
     | { score: number; metadata?: unknown }
     | Promise<number | { score: number; metadata?: unknown }>,
-): Promise<number> {
+) {
   const result = await raw;
   return typeof result === "number" ? result : result.score;
 }

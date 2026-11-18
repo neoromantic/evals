@@ -36,19 +36,19 @@ interface SelectorAppProps {
   entries: EvalFileEntry[];
 }
 
-function normalizeItemCount(itemCount: number): number {
+function normalizeItemCount(itemCount: number) {
   return Number.isFinite(itemCount) && itemCount > 0 ? Math.floor(itemCount) : 0;
 }
 
-function padLeft(value: string, width: number): string {
+function padLeft(value: string, width: number) {
   return value.length >= width ? value : `${" ".repeat(width - value.length)}${value}`;
 }
 
-function padRight(value: string, width: number): string {
+function padRight(value: string, width: number) {
   return value.length >= width ? value : `${value}${" ".repeat(width - value.length)}`;
 }
 
-function truncateEnd(value: string, width: number): string {
+function truncateEnd(value: string, width: number) {
   if (width <= 1) {
     return value.slice(0, width);
   }
@@ -60,7 +60,7 @@ function truncateEnd(value: string, width: number): string {
   return `${value.slice(0, width - 1)}…`;
 }
 
-function formatDuration(ms: number | null): string {
+function formatDuration(ms: number | null) {
   if (ms === null) {
     return "--";
   }
@@ -78,7 +78,7 @@ function formatDuration(ms: number | null): string {
   return `${Math.round(ms)}ms`;
 }
 
-function formatDurationRange(lowerBoundMs: number | null, upperBoundMs: number | null): string {
+function formatDurationRange(lowerBoundMs: number | null, upperBoundMs: number | null) {
   if (lowerBoundMs === null && upperBoundMs === null) {
     return "--";
   }
@@ -96,7 +96,7 @@ function formatDurationRange(lowerBoundMs: number | null, upperBoundMs: number |
   return `${formatDuration(lower)}-${formatDuration(upper)}`;
 }
 
-function formatTokens(tokens: number | null): string {
+function formatTokens(tokens: number | null) {
   if (tokens === null) {
     return "--";
   }
@@ -112,7 +112,7 @@ function formatTokens(tokens: number | null): string {
   return `${Math.round(tokens)}`;
 }
 
-function formatTokenBreakdown(estimate: EvalEstimate): string {
+function formatTokenBreakdown(estimate: EvalEstimate) {
   const { input, output, total } = estimate.tokens;
   if (input === null && output === null && total === null) {
     return "--";
@@ -125,7 +125,7 @@ function formatTokenBreakdown(estimate: EvalEstimate): string {
   return `${formatTokens(total)} total (${formatTokens(input)} in / ${formatTokens(output)} out)`;
 }
 
-function formatUpdatedAt(value: string | null): string {
+function formatUpdatedAt(value: string | null) {
   if (!value) {
     return "unknown";
   }
@@ -142,7 +142,7 @@ function formatUpdatedAt(value: string | null): string {
   }).format(date);
 }
 
-function selectedSummaryText(summary: EstimateSummary): string {
+function selectedSummaryText(summary: EstimateSummary) {
   if (summary.selectedCount === 0) {
     return "0 selected | choose at least one eval file";
   }
@@ -164,7 +164,7 @@ function selectedSummaryText(summary: EstimateSummary): string {
   return parts.join(" | ");
 }
 
-function listHeader(contentWidth: number): string {
+function listHeader(contentWidth: number) {
   const prefixWidth = 6;
   const wallWidth = 14;
   const tokenWidth = 8;
@@ -178,7 +178,7 @@ function listRow(
   isFocused: boolean,
   isSelected: boolean,
   contentWidth: number,
-): string {
+) {
   const prefix = `${isFocused ? ">" : " "} ${isSelected ? "[x]" : "[ ]"} `;
   const wallWidth = 14;
   const tokenWidth = 8;
@@ -191,7 +191,7 @@ function listRow(
   return `${prefix}${padRight(truncateEnd(entry.label, labelWidth), labelWidth)} ${padLeft(wallLabel, wallWidth)} ${padLeft(tokenLabel, tokenWidth)}`;
 }
 
-function suiteHeader(contentWidth: number): string {
+function suiteHeader(contentWidth: number) {
   const wallWidth = 8;
   const workWidth = 8;
   const tokenWidth = 8;
@@ -208,7 +208,7 @@ function suiteRow(
   tokens: number | null,
   testCount: number | null,
   contentWidth: number,
-): string {
+) {
   const wallWidth = 8;
   const workWidth = 8;
   const tokenWidth = 8;
@@ -218,7 +218,7 @@ function suiteRow(
   return `${padRight(truncateEnd(label, labelWidth), labelWidth)} ${padLeft(formatDuration(wallMs), wallWidth)} ${padLeft(formatDuration(workMs), workWidth)} ${padLeft(formatTokens(tokens), tokenWidth)} ${padLeft(testCount === null ? "--" : String(Math.round(testCount)), caseWidth)}`;
 }
 
-function detailsPanel(entry: EvalFileEntry, contentWidth: number): React.ReactNode[] {
+function detailsPanel(entry: EvalFileEntry, contentWidth: number) {
   const suiteRows = [...entry.estimate.suites].sort((left, right) => {
     const leftWork = left.workMs ?? Number.NEGATIVE_INFINITY;
     const rightWork = right.workMs ?? Number.NEGATIVE_INFINITY;
@@ -302,7 +302,7 @@ function detailsPanel(entry: EvalFileEntry, contentWidth: number): React.ReactNo
   return nodes;
 }
 
-function SelectorApp({ entries }: SelectorAppProps): React.ReactNode {
+function SelectorApp({ entries }: SelectorAppProps) {
   const { exit } = useApp();
   const { isRawModeSupported } = useStdin();
   const { stdout } = useStdout();
@@ -494,18 +494,15 @@ function SelectorApp({ entries }: SelectorAppProps): React.ReactNode {
   );
 }
 
-export function createSelectionState(itemCount: number): SelectionState {
-  return {
+export function createSelectionState(itemCount: number) {
+  const state: SelectionState = {
     cursor: 0,
     selected: Array(normalizeItemCount(itemCount)).fill(false),
   };
+  return state;
 }
 
-export function moveCursor(
-  state: SelectionState,
-  itemCount: number,
-  delta: number,
-): SelectionState {
+export function moveCursor(state: SelectionState, itemCount: number, delta: number) {
   const count = normalizeItemCount(itemCount);
   if (count === 0 || delta === 0) {
     return state;
@@ -518,11 +515,7 @@ export function moveCursor(
   };
 }
 
-export function setCursor(
-  state: SelectionState,
-  itemCount: number,
-  nextCursor: number,
-): SelectionState {
+export function setCursor(state: SelectionState, itemCount: number, nextCursor: number) {
   const count = normalizeItemCount(itemCount);
   if (count === 0) {
     return state;
@@ -534,7 +527,7 @@ export function setCursor(
   };
 }
 
-export function toggleSelection(state: SelectionState, index: number): SelectionState {
+export function toggleSelection(state: SelectionState, index: number) {
   if (index < 0 || index >= state.selected.length) {
     return state;
   }
@@ -548,11 +541,11 @@ export function toggleSelection(state: SelectionState, index: number): Selection
   };
 }
 
-export function toggleHighlightedSelection(state: SelectionState): SelectionState {
+export function toggleHighlightedSelection(state: SelectionState) {
   return toggleSelection(state, state.cursor);
 }
 
-export function toggleAllSelections(state: SelectionState): SelectionState {
+export function toggleAllSelections(state: SelectionState) {
   if (state.selected.length === 0) {
     return state;
   }
@@ -565,15 +558,11 @@ export function toggleAllSelections(state: SelectionState): SelectionState {
   };
 }
 
-export function getSelectedEvalFiles(evalFiles: string[], state: SelectionState): string[] {
+export function getSelectedEvalFiles(evalFiles: string[], state: SelectionState) {
   return evalFiles.filter((_, index) => state.selected[index]);
 }
 
-export function getVisibleWindow(
-  cursor: number,
-  itemCount: number,
-  pageSize: number,
-): VisibleWindow {
+export function getVisibleWindow(cursor: number, itemCount: number, pageSize: number) {
   const count = normalizeItemCount(itemCount);
   const size = Math.max(1, Math.floor(pageSize));
 
@@ -591,9 +580,7 @@ export function getVisibleWindow(
   };
 }
 
-export async function selectEvalFilesInteractive(
-  options: SelectEvalFilesInteractiveOptions,
-): Promise<SelectionResult> {
+export async function selectEvalFilesInteractive(options: SelectEvalFilesInteractiveOptions) {
   const {
     cwd,
     evalFiles,

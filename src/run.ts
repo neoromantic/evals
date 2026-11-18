@@ -1,6 +1,6 @@
 import { parseCliArgs, runCli } from "./cli";
 
-async function main(): Promise<void> {
+async function main() {
   const args = process.argv.slice(2);
   const { jsonOutput } = parseCliArgs(args);
 

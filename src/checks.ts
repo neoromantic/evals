@@ -9,8 +9,9 @@ export interface FactsCheck {
   model?: LanguageModel;
 }
 
-export function Facts(facts: string[], opts?: { model?: LanguageModel }): FactsCheck {
-  return { __check: "facts", facts, model: opts?.model };
+export function Facts(facts: string[], opts?: { model?: LanguageModel }) {
+  const check: FactsCheck = { __check: "facts", facts, model: opts?.model };
+  return check;
 }
 
 export function isFactsCheck(value: unknown): value is FactsCheck {
@@ -22,7 +23,7 @@ export function isFactsCheck(value: unknown): value is FactsCheck {
   );
 }
 
-function getDefaultJudgeModel(): LanguageModel {
+function getDefaultJudgeModel() {
   if (process.env.AI_GATEWAY_API_KEY) {
     return gateway("openai/gpt-4o-mini");
   }
@@ -39,7 +40,7 @@ function getDefaultJudgeModel(): LanguageModel {
 async function judgeFact(
   ctx: { input: unknown; output: unknown; fact: string },
   model?: LanguageModel,
-): Promise<ScorerResult> {
+) {
   const { object } = await generateObject({
     model: model ?? getDefaultJudgeModel(),
     schema: z.object({
@@ -61,19 +62,16 @@ async function judgeFact(
     ].join("\n"),
   });
 
-  return {
+  const result: ScorerResult = {
     score: object.score,
     name: ctx.fact.length > 60 ? `${ctx.fact.slice(0, 57)}...` : ctx.fact,
     metadata: { rationale: object.rationale, fact: ctx.fact },
     kind: "judge",
   };
+  return result;
 }
 
-export async function resolveCheckScorers(
-  expected: unknown,
-  input: unknown,
-  output: unknown,
-): Promise<ScorerResult[]> {
+export async function resolveCheckScorers(expected: unknown, input: unknown, output: unknown) {
   if (isFactsCheck(expected)) {
     return Promise.all(
       expected.facts.map((fact) => judgeFact({ input, output, fact }, expected.model)),

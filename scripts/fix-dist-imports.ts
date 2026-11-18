@@ -29,7 +29,7 @@ function walk(dir: string) {
   }
 }
 
-function getLogicalExtension(path: string): string {
+function getLogicalExtension(path: string) {
   if (path.endsWith(".d.ts")) {
     return ".d.ts";
   }
@@ -37,13 +37,13 @@ function getLogicalExtension(path: string): string {
   return extname(path);
 }
 
-function rewriteRelativeSpecifiers(source: string): string {
+function rewriteRelativeSpecifiers(source: string) {
   return source
     .replace(/(from\s+["'])(\.[^"']+)(["'])/g, rewriteMatch)
     .replace(/(import\s*\(\s*["'])(\.[^"']+)(["']\s*\))/g, rewriteMatch);
 }
 
-function rewriteMatch(_match: string, prefix: string, specifier: string, suffix: string): string {
+function rewriteMatch(_match: string, prefix: string, specifier: string, suffix: string) {
   if (hasKnownExtension(specifier)) {
     return `${prefix}${specifier}${suffix}`;
   }
@@ -51,7 +51,7 @@ function rewriteMatch(_match: string, prefix: string, specifier: string, suffix:
   return `${prefix}${specifier}.js${suffix}`;
 }
 
-function hasKnownExtension(specifier: string): boolean {
+function hasKnownExtension(specifier: string) {
   return [".js", ".mjs", ".cjs", ".json", ".node"].some((extension) =>
     specifier.endsWith(extension),
   );

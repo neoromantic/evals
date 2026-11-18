@@ -2,7 +2,7 @@ import type { AggregationEntry, SuiteConfig, TestMetrics } from "./types";
 
 type MetricKind = "latency" | "throughput" | "tokens" | "score" | "error" | "unknown";
 
-function classifyMetric(name: string): MetricKind {
+function classifyMetric(name: string) {
   if (name === "latency" || name.startsWith("latency.") || name.startsWith("ttfb"))
     return "latency";
   if (name.startsWith("throughput")) return "throughput";
@@ -12,7 +12,7 @@ function classifyMetric(name: string): MetricKind {
   return "unknown";
 }
 
-function weightedAvg(entries: AggregationEntry[]): number {
+function weightedAvg(entries: AggregationEntry[]) {
   let sumWeighted = 0;
   let sumWeights = 0;
   for (const e of entries) {
@@ -22,7 +22,7 @@ function weightedAvg(entries: AggregationEntry[]): number {
   return sumWeights === 0 ? 0 : sumWeighted / sumWeights;
 }
 
-function sum(entries: AggregationEntry[]): number {
+function sum(entries: AggregationEntry[]) {
   let total = 0;
   for (const e of entries) {
     total += e.value;
@@ -30,7 +30,7 @@ function sum(entries: AggregationEntry[]): number {
   return total;
 }
 
-function min(entries: AggregationEntry[]): number {
+function min(entries: AggregationEntry[]) {
   let result = Number.POSITIVE_INFINITY;
   for (const e of entries) {
     if (e.value < result) result = e.value;
@@ -38,7 +38,7 @@ function min(entries: AggregationEntry[]): number {
   return result;
 }
 
-function max(entries: AggregationEntry[]): number {
+function max(entries: AggregationEntry[]) {
   let result = Number.NEGATIVE_INFINITY;
   for (const e of entries) {
     if (e.value > result) result = e.value;
@@ -46,7 +46,7 @@ function max(entries: AggregationEntry[]): number {
   return result;
 }
 
-function percentile(entries: AggregationEntry[], p: number): number {
+function percentile(entries: AggregationEntry[], p: number) {
   if (entries.length === 0) return 0;
   const sorted = entries.map((e) => e.value).sort((a, b) => a - b);
   const index = (p / 100) * (sorted.length - 1);
@@ -57,7 +57,7 @@ function percentile(entries: AggregationEntry[], p: number): number {
   return sorted[lower]! * (1 - fraction) + sorted[upper]! * fraction;
 }
 
-function collectNumericMetricNames(tests: TestMetrics[]): Set<string> {
+function collectNumericMetricNames(tests: TestMetrics[]) {
   const metricNames = new Set<string>();
   for (const test of tests) {
     for (const [metricName, metricValue] of Object.entries(test.metrics)) {
@@ -69,7 +69,7 @@ function collectNumericMetricNames(tests: TestMetrics[]): Set<string> {
   return metricNames;
 }
 
-function entriesForMetric(tests: TestMetrics[], metricName: string): AggregationEntry[] {
+function entriesForMetric(tests: TestMetrics[], metricName: string) {
   const entries: AggregationEntry[] = [];
   for (const test of tests) {
     const metricValue = test.metrics[metricName];
@@ -82,24 +82,24 @@ function entriesForMetric(tests: TestMetrics[], metricName: string): Aggregation
 
 type AggOp = "sum" | "avg" | "min" | "max" | "p50" | "p95" | "count" | "rate";
 
-function aggregationsForKind(kind: MetricKind): AggOp[] {
+function aggregationsForKind(kind: MetricKind) {
   switch (kind) {
     case "latency":
-      return ["sum", "avg", "min", "max", "p50", "p95"];
+      return ["sum", "avg", "min", "max", "p50", "p95"] satisfies AggOp[];
     case "throughput":
-      return ["avg"];
+      return ["avg"] satisfies AggOp[];
     case "tokens":
-      return ["sum", "avg", "min", "max", "p50", "p95"];
+      return ["sum", "avg", "min", "max", "p50", "p95"] satisfies AggOp[];
     case "score":
-      return ["avg", "min", "max", "p50", "p95"];
+      return ["avg", "min", "max", "p50", "p95"] satisfies AggOp[];
     case "error":
-      return ["count", "rate"];
+      return ["count", "rate"] satisfies AggOp[];
     default:
-      return [];
+      return [] satisfies AggOp[];
   }
 }
 
-function computeAgg(op: AggOp, entries: AggregationEntry[]): number {
+function computeAgg(op: AggOp, entries: AggregationEntry[]) {
   switch (op) {
     case "sum":
     case "count":
@@ -118,7 +118,7 @@ function computeAgg(op: AggOp, entries: AggregationEntry[]): number {
   }
 }
 
-function buildPassEntries(tests: TestMetrics[], passThreshold: number): AggregationEntry[] {
+function buildPassEntries(tests: TestMetrics[], passThreshold: number) {
   return tests.map((test) => {
     if (!test.passed) {
       return { value: 0, weight: test.weight };
@@ -146,10 +146,7 @@ function buildPassEntries(tests: TestMetrics[], passThreshold: number): Aggregat
   });
 }
 
-export function aggregateMetrics(
-  tests: TestMetrics[],
-  suiteConfig?: SuiteConfig,
-): Record<string, number> {
+export function aggregateMetrics(tests: TestMetrics[], suiteConfig?: SuiteConfig) {
   const result: Record<string, number> = {};
 
   if (tests.length === 0) {

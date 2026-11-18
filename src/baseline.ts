@@ -11,23 +11,23 @@ import type {
 const RESERVED_BASELINE_KEYS = new Set(["_meta", "_aggregate", "_suites"]);
 const BASELINE_TEST_KEY_ESCAPE_PREFIX = "@";
 
-export function getBaselinePath(evalFilePath: string): string {
+export function getBaselinePath(evalFilePath: string) {
   const dir = dirname(evalFilePath);
   const name = basename(evalFilePath).replace(/\.eval\.\w+$/, ".eval.baseline.json");
   return join(dir, name);
 }
 
-export function loadBaseline(evalFilePath: string): BaselineFile | null {
+export function loadBaseline(evalFilePath: string) {
   const path = getBaselinePath(evalFilePath);
   if (!existsSync(path)) return null;
   return JSON.parse(readFileSync(path, "utf-8")) as BaselineFile;
 }
 
-export function saveBaseline(evalFilePath: string, data: BaselineFile): void {
+export function saveBaseline(evalFilePath: string, data: BaselineFile) {
   writeFileSync(getBaselinePath(evalFilePath), `${JSON.stringify(data, null, 2)}\n`, "utf-8");
 }
 
-export function getDefaultTolerance(metricName: string): number {
+export function getDefaultTolerance(metricName: string) {
   if (/^latency\b/.test(metricName) || /^ttfb(?:\.|$)/.test(metricName)) return 0.2;
   if (/^tokens\b/.test(metricName)) return 0.1;
   if (/^score\b/.test(metricName)) return 0.05;
@@ -38,17 +38,17 @@ export function getDefaultTolerance(metricName: string): number {
   return 0.1;
 }
 
-export function getMetricDirection(metricName: string): "higher" | "lower" {
+export function getMetricDirection(metricName: string) {
   if (
     /^score\b/.test(metricName) ||
     /^throughput\b/.test(metricName) ||
     metricName === "test.pass_rate"
   )
-    return "higher";
-  return "lower";
+    return "higher" as const;
+  return "lower" as const;
 }
 
-export function baselineTestEntryKey(testName: string): string {
+export function baselineTestEntryKey(testName: string) {
   if (
     RESERVED_BASELINE_KEYS.has(testName) ||
     testName.startsWith(BASELINE_TEST_KEY_ESCAPE_PREFIX)
@@ -62,7 +62,7 @@ export function baselineTestEntryKey(testName: string): string {
 function buildSuiteBaselineData(
   aggregates: Record<string, number>,
   perTest: Record<string, Record<string, number>>,
-): BaselineSuiteData {
+) {
   const suiteData: BaselineSuiteData = {
     _aggregate: buildMetricRecord(aggregates),
   };
@@ -74,7 +74,7 @@ function buildSuiteBaselineData(
   return suiteData;
 }
 
-function assignLegacySuiteData(target: BaselineFile, suiteData: BaselineSuiteData): void {
+function assignLegacySuiteData(target: BaselineFile, suiteData: BaselineSuiteData) {
   for (const key of Object.keys(target)) {
     if (RESERVED_BASELINE_KEYS.has(key)) continue;
     delete target[key];
@@ -91,7 +91,7 @@ export function createBaselineFile(
   evalFilePath: string,
   aggregates: Record<string, number>,
   perTest: Record<string, Record<string, number>>,
-): BaselineFile {
+) {
   const suiteData = buildSuiteBaselineData(aggregates, perTest);
   const file: BaselineFile = {
     _meta: createBaseMeta(evalFilePath),
@@ -103,9 +103,7 @@ export function createBaselineFile(
   return file;
 }
 
-function buildMetricRecord(
-  metrics: Record<string, number>,
-): Record<string, BaselineMetric | number> {
+function buildMetricRecord(metrics: Record<string, number>) {
   const record: Record<string, BaselineMetric | number> = {};
 
   for (const [name, value] of Object.entries(metrics)) {
@@ -116,14 +114,14 @@ function buildMetricRecord(
   return record;
 }
 
-function createBaseMeta(evalFilePath: string): BaselineFile["_meta"] {
+function createBaseMeta(evalFilePath: string) {
   return {
     updatedAt: new Date().toISOString(),
     evalFile: basename(evalFilePath),
   };
 }
 
-function normalizeSuitesValue(value: unknown): BaselineSuites {
+function normalizeSuitesValue(value: unknown) {
   if (!value || typeof value !== "object") {
     return {};
   }
@@ -142,7 +140,7 @@ function normalizeSuitesValue(value: unknown): BaselineSuites {
   return suites;
 }
 
-function suiteIdFromSuiteKey(suiteKey: string): string {
+function suiteIdFromSuiteKey(suiteKey: string) {
   const delimiterIndex = suiteKey.indexOf("::");
   if (delimiterIndex === -1) {
     return suiteKey;
@@ -163,7 +161,7 @@ function suiteIdFromSuiteKey(suiteKey: string): string {
   return suiteId.length > 0 ? suiteId : suiteKey;
 }
 
-function normalizeSuitesByStableId(suites: BaselineSuites): BaselineSuites {
+function normalizeSuitesByStableId(suites: BaselineSuites) {
   const normalized: BaselineSuites = {};
 
   for (const [storedKey, suiteData] of Object.entries(suites)) {
@@ -189,7 +187,7 @@ export function upsertSuiteBaseline(
   suiteKey: string,
   aggregates: Record<string, number>,
   perTest: Record<string, Record<string, number>>,
-): BaselineFile {
+) {
   const suiteData = buildSuiteBaselineData(aggregates, perTest);
   const stableSuiteId = suiteIdFromSuiteKey(suiteKey);
   const next: BaselineFile = existing
@@ -207,10 +205,7 @@ export function upsertSuiteBaseline(
   return next;
 }
 
-export function resolveSuiteBaseline(
-  baseline: BaselineFile,
-  suiteKey: string,
-): BaselineSuiteData | null {
+export function resolveSuiteBaseline(baseline: BaselineFile, suiteKey: string) {
   const stableSuiteId = suiteIdFromSuiteKey(suiteKey);
   const rawSuites = normalizeSuitesValue(baseline._suites);
   const suiteData = normalizeSuitesByStableId(rawSuites)[stableSuiteId] ?? rawSuites[suiteKey];
@@ -245,23 +240,20 @@ interface NormalizedMetricBaseline {
   direction: "higher" | "lower";
 }
 
-function normalizeMetricBaseline(
-  metricName: string,
-  baselineEntry: BaselineMetric | number,
-): NormalizedMetricBaseline {
+function normalizeMetricBaseline(metricName: string, baselineEntry: BaselineMetric | number) {
   if (typeof baselineEntry === "number") {
     return {
       value: baselineEntry,
       tolerance: getDefaultTolerance(metricName),
       direction: getMetricDirection(metricName),
-    };
+    } satisfies NormalizedMetricBaseline;
   }
 
   return {
     value: baselineEntry.value,
     tolerance: baselineEntry.tolerance,
     direction: baselineEntry.direction ?? getMetricDirection(metricName),
-  };
+  } satisfies NormalizedMetricBaseline;
 }
 
 function hasRegression(
@@ -269,7 +261,7 @@ function hasRegression(
   baselineValue: number,
   tolerance: number,
   direction: "higher" | "lower",
-): boolean {
+) {
   if (direction === "lower") {
     return currentValue > baselineValue * (1 + tolerance);
   }
@@ -280,7 +272,7 @@ function hasRegression(
 export function compareMetrics(
   current: Record<string, number>,
   baseline: Record<string, BaselineMetric | number>,
-): ComparisonResult[] {
+) {
   const results: ComparisonResult[] = [];
 
   for (const [metric, baselineEntry] of Object.entries(baseline)) {

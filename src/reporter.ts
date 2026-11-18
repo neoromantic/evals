@@ -9,7 +9,7 @@ const cyan = (s: string) => `\x1b[36m${s}\x1b[39m`;
 
 const ANSI_SGR = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 
-function stripAnsi(s: string): string {
+function stripAnsi(s: string) {
   return s.replace(ANSI_SGR, "");
 }
 
@@ -40,7 +40,7 @@ const METRIC_DISPLAY_NAMES: Record<string, string> = {
   "tokens.scorer.total": "Scorer Total Tokens",
 };
 
-export function displayMetricName(name: string): string {
+export function displayMetricName(name: string) {
   const direct = METRIC_DISPLAY_NAMES[name];
   if (direct) return direct;
 
@@ -61,7 +61,7 @@ export function displayMetricName(name: string): string {
   return name;
 }
 
-export function displayScore(score: number | null): string {
+export function displayScore(score: number | null) {
   if (score === null) return dim("N/A");
   const pct = Math.round(score * 100);
   const label = `${pct}%`;
@@ -70,7 +70,7 @@ export function displayScore(score: number | null): string {
   return red(label);
 }
 
-export function formatMetricValue(name: string, value: number): string {
+export function formatMetricValue(name: string, value: number) {
   const lower = name.toLowerCase();
 
   if (lower.startsWith("latency") || lower.startsWith("ttfb")) {
@@ -97,7 +97,7 @@ export function formatMetricValue(name: string, value: number): string {
   return value.toFixed(2);
 }
 
-export function formatChange(comparison: ComparisonResult): string {
+export function formatChange(comparison: ComparisonResult) {
   const changePct = comparison.change * 100;
   const sign = changePct >= 0 ? "+" : "";
   const pctStr = `${sign}${changePct.toFixed(1)}%`;
@@ -116,7 +116,7 @@ export function formatChange(comparison: ComparisonResult): string {
   return isImprovement ? green(pctStr) : yellow(pctStr);
 }
 
-function metricLabelWidth(names: string[]): number {
+function metricLabelWidth(names: string[]) {
   return Math.max(...names.map((name) => displayMetricName(name).length), 12) + 2;
 }
 
@@ -124,7 +124,7 @@ function appendBaselineComparison(
   line: string,
   metricName: string,
   currentComparison: ComparisonResult | undefined,
-): string {
+) {
   if (!currentComparison || currentComparison.change === 0) {
     return line;
   }
@@ -145,7 +145,7 @@ interface VariantSuiteEntry {
   report: SuiteReport;
 }
 
-export function classifyScorerScore(score: number, passThreshold: number): "fail" | "low" | "pass" {
+export function classifyScorerScore(score: number, passThreshold: number) {
   if (score < passThreshold) {
     return "fail";
   }
@@ -157,11 +157,11 @@ export function classifyScorerScore(score: number, passThreshold: number): "fail
   return "pass";
 }
 
-export function shouldPrintVerboseTest(test: VerboseTestReport): boolean {
+export function shouldPrintVerboseTest(test: VerboseTestReport) {
   return test.scorerResults.some((scorerResult) => scorerResult.score < 1);
 }
 
-function formatScorerStatus(score: number, passThreshold: number): string {
+function formatScorerStatus(score: number, passThreshold: number) {
   const scoreText = score.toFixed(2);
   const status = classifyScorerScore(score, passThreshold);
 
@@ -176,14 +176,14 @@ function formatScorerStatus(score: number, passThreshold: number): string {
   return `${green(scoreText)}  ${green("PASS")}`;
 }
 
-function formatScoreSummary(score: number, passThreshold: number): string {
+function formatScoreSummary(score: number, passThreshold: number) {
   const pct = `${Math.round(score * 100)}%`;
   const margin = score - passThreshold;
   const marginLabel = `${margin >= 0 ? "+" : ""}${margin.toFixed(2)}`;
   return `${pct}, ${marginLabel} vs threshold ${passThreshold.toFixed(2)}`;
 }
 
-function valueLines(value: unknown): string[] {
+function valueLines(value: unknown) {
   if (value === undefined) {
     return [];
   }
@@ -200,7 +200,7 @@ function valueLines(value: unknown): string[] {
   return serialized.split("\n");
 }
 
-function metadataLines(metadata: unknown): string[] {
+function metadataLines(metadata: unknown) {
   if (metadata === undefined || metadata === null) {
     return [];
   }
@@ -236,11 +236,11 @@ function metadataLines(metadata: unknown): string[] {
   return lines;
 }
 
-function normalizeMultiline(value: string): string {
+function normalizeMultiline(value: string) {
   return value.replaceAll("\\n", "\n").replaceAll("\r\n", "\n");
 }
 
-function factualityChoiceSummary(metadata: unknown): string | null {
+function factualityChoiceSummary(metadata: unknown) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     return null;
   }
@@ -261,7 +261,7 @@ function factualityChoiceSummary(metadata: unknown): string | null {
   return `judge decision: ${choice}`;
 }
 
-function printValueBlock(label: string, value: unknown): void {
+function printValueBlock(label: string, value: unknown) {
   const lines = valueLines(value);
   if (lines.length === 0) {
     return;
@@ -273,7 +273,7 @@ function printValueBlock(label: string, value: unknown): void {
   }
 }
 
-function printVerboseScorerDetails(report: SuiteReport): void {
+function printVerboseScorerDetails(report: SuiteReport) {
   const verboseTests = report.tests.filter(shouldPrintVerboseTest);
 
   console.log("");
@@ -333,7 +333,7 @@ function printVerboseScorerDetails(report: SuiteReport): void {
   }
 }
 
-function printPerTestResults(report: SuiteReport): void {
+function printPerTestResults(report: SuiteReport) {
   if (report.tests.length === 0) return;
 
   const hasScorers = report.tests.some((t) => t.scorerResults.length > 0);
@@ -359,7 +359,7 @@ function printPerTestResults(report: SuiteReport): void {
   }
 }
 
-function detectBooleanScores(report: SuiteReport): Set<string> {
+function detectBooleanScores(report: SuiteReport) {
   const booleans = new Set<string>();
   const nonBooleans = new Set<string>();
   for (const test of report.tests) {
@@ -377,7 +377,7 @@ function detectBooleanScores(report: SuiteReport): Set<string> {
   return booleans;
 }
 
-function formatScoreValue(value: number, isBoolean: boolean): string {
+function formatScoreValue(value: number, isBoolean: boolean) {
   if (isBoolean) {
     if (value === 1) return green("PASS");
     if (value === 0) return red("FAIL");
@@ -399,10 +399,7 @@ interface MetricGroup {
   isBoolean: boolean;
 }
 
-function groupMetricAggregates(
-  aggregates: Record<string, number>,
-  booleanScores: Set<string>,
-): MetricGroup[] {
+function groupMetricAggregates(aggregates: Record<string, number>, booleanScores: Set<string>) {
   const groups = new Map<string, Record<string, number>>();
 
   for (const [key, value] of Object.entries(aggregates)) {
@@ -464,11 +461,11 @@ function groupMetricAggregates(
   return result;
 }
 
-function isGroupedAggregateKey(key: string): boolean {
+function isGroupedAggregateKey(key: string) {
   return GROUPED_AGGREGATE_RE.test(key);
 }
 
-function formatMetricGroupLine(group: MetricGroup, labelWidth: number): string {
+function formatMetricGroupLine(group: MetricGroup, labelWidth: number) {
   const fmtValue = (v: number) => {
     if (group.kind === "score") return formatScoreValue(v, group.isBoolean);
     return formatMetricValue(group.baseName, v);
@@ -503,7 +500,7 @@ function appendGroupBaselineComparison(
   line: string,
   group: MetricGroup,
   comp: ComparisonResult | undefined,
-): string {
+) {
   if (!comp || comp.change === 0) return line;
 
   const fmtBaseline =
@@ -518,7 +515,7 @@ export function printSuiteReport(
   report: SuiteReport,
   evalFile?: string,
   options?: PrintSuiteReportOptions,
-): void {
+) {
   console.log("");
   console.log(heavy);
   if (evalFile) {
@@ -617,7 +614,7 @@ export function printSuiteReport(
   console.log("");
 }
 
-export function printVariantComparisonTables(reports: SuiteReport[]): void {
+export function printVariantComparisonTables(reports: SuiteReport[]) {
   const variantEntries = reports
     .map(asVariantSuiteEntry)
     .filter((entry): entry is VariantSuiteEntry => entry !== null);
@@ -695,7 +692,7 @@ export function printVariantComparisonTables(reports: SuiteReport[]): void {
   }
 }
 
-export function printSummary(reports: SuiteReport[]): void {
+export function printSummary(reports: SuiteReport[]) {
   const summary = summarizeReports(reports);
   const parts: string[] = [];
 
@@ -720,7 +717,7 @@ interface SummaryCounts {
   hasBaseline: boolean;
 }
 
-function summarizeReports(reports: SuiteReport[]): SummaryCounts {
+function summarizeReports(reports: SuiteReport[]) {
   let regressions = 0;
   let metricsOk = 0;
   let hasBaseline = false;
@@ -740,10 +737,11 @@ function summarizeReports(reports: SuiteReport[]): SummaryCounts {
     }
   }
 
-  return { regressions, metricsOk, hasBaseline };
+  const summary: SummaryCounts = { regressions, metricsOk, hasBaseline };
+  return summary;
 }
 
-function asVariantSuiteEntry(report: SuiteReport): VariantSuiteEntry | null {
+function asVariantSuiteEntry(report: SuiteReport) {
   const match = report.suiteName.match(/^(.*)\s\[(.+)\]$/);
   const baseSuiteName = match?.[1]?.trim();
   const variantName = match?.[2]?.trim();
@@ -759,7 +757,7 @@ function asVariantSuiteEntry(report: SuiteReport): VariantSuiteEntry | null {
   };
 }
 
-function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
+function commonAggregateMetrics(entries: VariantSuiteEntry[]) {
   const [firstEntry, ...restEntries] = entries;
   if (!firstEntry) {
     return [];
@@ -793,7 +791,7 @@ function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
   return filtered;
 }
 
-function metricPriority(metricName: string): number {
+function metricPriority(metricName: string) {
   if (metricName.startsWith("score.") && metricName.endsWith(".avg")) return 1;
   if (metricName === "latency.avg") return 2;
   if (metricName === "latency.scoring.avg") return 2.1;
@@ -805,17 +803,17 @@ function metricPriority(metricName: string): number {
   return 10;
 }
 
-function buildTableSeparator(metricWidth: number, variantWidths: number[]): string {
+function buildTableSeparator(metricWidth: number, variantWidths: number[]) {
   const segments = [metricWidth, ...variantWidths].map((width) => "-".repeat(width + 2));
   return `+${segments.join("+")}+`;
 }
 
-function formatTableRow(cells: string[], widths: number[]): string {
+function formatTableRow(cells: string[], widths: number[]) {
   const padded = cells.map((cell, index) => padRight(cell, widths[index] ?? 0));
   return `| ${padded.join(" | ")} |`;
 }
 
-function padRight(s: string, width: number): string {
+function padRight(s: string, width: number) {
   const visibleLength = stripAnsi(s).length;
   if (visibleLength >= width) return s;
   return s + " ".repeat(width - visibleLength);

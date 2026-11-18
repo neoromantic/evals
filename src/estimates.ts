@@ -43,7 +43,7 @@ export interface EstimateSummary {
 
 type AggregateRecord = Record<string, BaselineMetric | number>;
 
-function metricValue(metric: BaselineMetric | number | undefined): number | null {
+function metricValue(metric: BaselineMetric | number | undefined) {
   if (typeof metric === "number") {
     return Number.isFinite(metric) ? metric : null;
   }
@@ -61,7 +61,7 @@ function metricValue(metric: BaselineMetric | number | undefined): number | null
   return null;
 }
 
-function sumNumbers(values: Array<number | null | undefined>): number | null {
+function sumNumbers(values: Array<number | null | undefined>) {
   let total = 0;
   let hasValue = false;
 
@@ -77,7 +77,7 @@ function sumNumbers(values: Array<number | null | undefined>): number | null {
   return hasValue ? total : null;
 }
 
-function maxNumbers(values: Array<number | null | undefined>): number | null {
+function maxNumbers(values: Array<number | null | undefined>) {
   let result = Number.NEGATIVE_INFINITY;
   let hasValue = false;
 
@@ -93,11 +93,11 @@ function maxNumbers(values: Array<number | null | undefined>): number | null {
   return hasValue ? result : null;
 }
 
-function suiteWorkMs(aggregate: AggregateRecord): number | null {
+function suiteWorkMs(aggregate: AggregateRecord) {
   return metricValue(aggregate["latency.total.sum"]) ?? metricValue(aggregate["latency.sum"]);
 }
 
-function suiteWallMs(aggregate: AggregateRecord): number | null {
+function suiteWallMs(aggregate: AggregateRecord) {
   return (
     metricValue(aggregate["latency.total.max"]) ??
     metricValue(aggregate["latency.max"]) ??
@@ -109,7 +109,7 @@ function suiteWallMs(aggregate: AggregateRecord): number | null {
   );
 }
 
-function tokenEstimate(aggregate: AggregateRecord): TokenEstimate {
+function tokenEstimate(aggregate: AggregateRecord) {
   const input = sumNumbers([
     metricValue(aggregate["tokens.input.sum"]),
     metricValue(aggregate["tokens.scorer.input.sum"]),
@@ -131,7 +131,7 @@ function tokenEstimate(aggregate: AggregateRecord): TokenEstimate {
   };
 }
 
-function buildSuiteEstimate(key: string, label: string, aggregate: AggregateRecord): SuiteEstimate {
+function buildSuiteEstimate(key: string, label: string, aggregate: AggregateRecord) {
   return {
     key,
     label,
@@ -142,7 +142,7 @@ function buildSuiteEstimate(key: string, label: string, aggregate: AggregateReco
   };
 }
 
-function buildSuiteEstimates(evalFile: string, baseline: BaselineFile): SuiteEstimate[] {
+function buildSuiteEstimates(evalFile: string, baseline: BaselineFile) {
   const suites = baseline._suites ? Object.entries(baseline._suites) : [];
 
   if (suites.length > 0) {
@@ -154,7 +154,7 @@ function buildSuiteEstimates(evalFile: string, baseline: BaselineFile): SuiteEst
   return [buildSuiteEstimate(basename(evalFile), basename(evalFile), baseline._aggregate)];
 }
 
-function sumTokenEstimates(estimates: TokenEstimate[]): TokenEstimate {
+function sumTokenEstimates(estimates: TokenEstimate[]) {
   return {
     input: sumNumbers(estimates.map((estimate) => estimate.input)),
     output: sumNumbers(estimates.map((estimate) => estimate.output)),
@@ -162,11 +162,11 @@ function sumTokenEstimates(estimates: TokenEstimate[]): TokenEstimate {
   };
 }
 
-function hasDetailedSuites(baseline: BaselineFile): boolean {
+function hasDetailedSuites(baseline: BaselineFile) {
   return Boolean(baseline._suites && Object.keys(baseline._suites).length > 0);
 }
 
-export function buildEvalEstimate(evalFile: string, baseline: BaselineFile | null): EvalEstimate {
+export function buildEvalEstimate(evalFile: string, baseline: BaselineFile | null) {
   const baselinePath = getBaselinePath(evalFile);
 
   if (!baseline) {
@@ -207,15 +207,15 @@ export function buildEvalEstimate(evalFile: string, baseline: BaselineFile | nul
   };
 }
 
-export function loadEvalEstimate(evalFile: string): EvalEstimate {
+export function loadEvalEstimate(evalFile: string) {
   return buildEvalEstimate(evalFile, loadBaseline(evalFile));
 }
 
-export function loadEvalEstimates(evalFiles: string[]): EvalEstimate[] {
+export function loadEvalEstimates(evalFiles: string[]) {
   return evalFiles.map(loadEvalEstimate);
 }
 
-export function summarizeEvalEstimates(estimates: EvalEstimate[]): EstimateSummary {
+export function summarizeEvalEstimates(estimates: EvalEstimate[]) {
   const estimated = estimates.filter((estimate) => estimate.hasBaseline);
 
   return {

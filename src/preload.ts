@@ -68,7 +68,7 @@ interface JsonRunPayload {
   variantComparisons: JsonVariantComparison[];
 }
 
-function parseEvalFiles(value: string | undefined): string[] {
+function parseEvalFiles(value: string | undefined) {
   if (!value) return [];
   return value
     .split(",")
@@ -79,7 +79,7 @@ function parseEvalFiles(value: string | undefined): string[] {
 export function resolveEvalFileForSuite(
   mappedEvalFile: string | undefined,
   env: NodeJS.ProcessEnv = process.env,
-): string {
+) {
   if (mappedEvalFile) {
     return mappedEvalFile;
   }
@@ -96,7 +96,7 @@ function uniqueTestRecordKey(
   testName: string,
   usedKeys: Set<string>,
   nextSuffixByName: Map<string, number>,
-): string {
+) {
   if (!usedKeys.has(testName)) {
     usedKeys.add(testName);
     return testName;
@@ -115,7 +115,7 @@ function uniqueTestRecordKey(
   return candidate;
 }
 
-export function buildPerTestMetrics(tests: TestMetrics[]): Record<string, Record<string, number>> {
+export function buildPerTestMetrics(tests: TestMetrics[]) {
   const perTest: Record<string, Record<string, number>> = {};
   const usedKeys: Set<string> = new Set();
   const nextSuffixByName: Map<string, number> = new Map();
@@ -136,7 +136,7 @@ export function buildPerTestMetrics(tests: TestMetrics[]): Record<string, Record
   return perTest;
 }
 
-function buildVerboseTests(tests: TestMetrics[]): VerboseTestReport[] {
+function buildVerboseTests(tests: TestMetrics[]) {
   const usedKeys: Set<string> = new Set();
   const nextSuffixByName: Map<string, number> = new Map();
 
@@ -163,7 +163,7 @@ function buildVerboseTests(tests: TestMetrics[]): VerboseTestReport[] {
   });
 }
 
-function isVerboseReportEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+function isVerboseReportEnabled(env: NodeJS.ProcessEnv = process.env) {
   const value = env.EVAL_VERBOSE?.trim().toLowerCase();
   if (!value) {
     return false;
@@ -172,7 +172,7 @@ function isVerboseReportEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return value === "1" || value === "true" || value === "yes" || value === "on";
 }
 
-function isJsonReportEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+function isJsonReportEnabled(env: NodeJS.ProcessEnv = process.env) {
   const value = env.EVAL_JSON?.trim().toLowerCase();
   if (!value) {
     return false;
@@ -184,7 +184,7 @@ function isJsonReportEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
 function comparePerTestMetrics(
   perTest: Record<string, Record<string, number>>,
   baseline: BaselineSuiteData,
-): Record<string, ComparisonResult[]> {
+) {
   const perTestComparisons: Record<string, ComparisonResult[]> = {};
 
   for (const [testName, metrics] of Object.entries(perTest)) {
@@ -205,7 +205,7 @@ function comparePerTestMetrics(
   return perTestComparisons;
 }
 
-function prepareSuiteReport(suiteKey: string): PreparedSuiteReport | null {
+function prepareSuiteReport(suiteKey: string) {
   const tests = collector.getTestResultsForSuite(suiteKey);
   if (tests.length === 0) {
     return null;
@@ -251,7 +251,7 @@ function updateBaselineIfRequested(
   aggregates: Record<string, number>,
   perTest: Record<string, Record<string, number>>,
   options?: { silent?: boolean },
-): void {
+) {
   if (process.env.UPDATE_BASELINE !== "1" || !evalFile) {
     return;
   }
@@ -274,7 +274,7 @@ function saveRawOutputIfRequested(
   suiteName: string,
   aggregates: Record<string, number>,
   perTest: Record<string, Record<string, number>>,
-): void {
+) {
   const outputPath = process.env.EVAL_OUTPUT;
   if (!outputPath) {
     return;
@@ -293,7 +293,7 @@ function saveRawOutputIfRequested(
   writeFileSync(outputPath, JSON.stringify(existing, null, 2));
 }
 
-function buildJsonSummary(reports: SuiteReport[]): JsonSummary {
+function buildJsonSummary(reports: SuiteReport[]) {
   let regressions = 0;
   let metricsOk = 0;
   let hasBaseline = false;
@@ -330,7 +330,7 @@ function buildJsonSummary(reports: SuiteReport[]): JsonSummary {
   };
 }
 
-function buildVariantComparisons(suites: JsonSuiteResult[]): JsonVariantComparison[] {
+function buildVariantComparisons(suites: JsonSuiteResult[]) {
   const grouped = new Map<string, JsonVariantResult[]>();
 
   for (const suite of suites) {
@@ -366,9 +366,7 @@ function buildVariantComparisons(suites: JsonSuiteResult[]): JsonVariantComparis
   return comparisons;
 }
 
-function parseVariantIdentity(
-  suiteName: string,
-): { baseSuiteName: string; variantName: string } | null {
+function parseVariantIdentity(suiteName: string) {
   const match = suiteName.match(/^(.*)\s\[(.+)\]$/);
   const baseSuiteName = match?.[1]?.trim();
   const variantName = match?.[2]?.trim();
@@ -380,7 +378,7 @@ function parseVariantIdentity(
   return { baseSuiteName, variantName };
 }
 
-function buildJsonPayload(prepared: PreparedSuiteReport[]): JsonRunPayload {
+function buildJsonPayload(prepared: PreparedSuiteReport[]) {
   const suites: JsonSuiteResult[] = prepared.map((entry) => ({
     suiteKey: entry.suiteKey,
     suiteName: entry.report.suiteName,
@@ -404,7 +402,7 @@ function buildJsonPayload(prepared: PreparedSuiteReport[]): JsonRunPayload {
   };
 }
 
-function writeJsonPayload(payload: JsonRunPayload): void {
+function writeJsonPayload(payload: JsonRunPayload) {
   const outputPath = process.env.EVAL_JSON_OUTPUT_FILE;
   if (outputPath) {
     writeFileSync(outputPath, JSON.stringify(payload, null, 2));

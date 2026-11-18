@@ -65,7 +65,7 @@ const RequiredFactsCoverage = createScorer<string, string, BriefingExpected>({
   },
 });
 
-function normalizeForContains(value: string): string {
+function normalizeForContains(value: string) {
   return value
     .normalize("NFD")
     .replaceAll(/[\u0300-\u036f]/g, "")

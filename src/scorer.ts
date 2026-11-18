@@ -14,8 +14,9 @@ interface ScorerOpts<TInput = string, TOutput = string, TExpected = TOutput> {
 
 export function createScorer<TInput = string, TOutput = string, TExpected = TOutput>(
   opts: ScorerOpts<TInput, TOutput, TExpected>,
-): Scorer<TInput, TOutput, TExpected> {
-  return opts;
+) {
+  const scorer: Scorer<TInput, TOutput, TExpected> = opts;
+  return scorer;
 }
 
 export const ExactMatch = createScorer<string, string, string>({
@@ -87,9 +88,10 @@ export const LengthRatio = createScorer<string, string, string>({
   },
 });
 
-function stableJsonValue(value: unknown): unknown {
+function stableJsonValue(value: unknown) {
   if (Array.isArray(value)) {
-    return value.map(stableJsonValue);
+    const items: unknown[] = value.map(stableJsonValue);
+    return items;
   }
 
   if (value && typeof value === "object") {

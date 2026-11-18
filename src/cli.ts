@@ -16,7 +16,7 @@ export interface ParsedCliArgs {
   fileFilter?: string;
 }
 
-function parseBooleanFlagValue(rawValue: string | undefined): boolean {
+function parseBooleanFlagValue(rawValue: string | undefined) {
   const normalizedValue = rawValue?.trim().toLowerCase();
   return (
     normalizedValue === undefined ||
@@ -27,7 +27,7 @@ function parseBooleanFlagValue(rawValue: string | undefined): boolean {
   );
 }
 
-function parseValueFlag(arg: string, flags: Set<string>): string | undefined {
+function parseValueFlag(arg: string, flags: Set<string>) {
   const eqIndex = arg.indexOf("=");
   if (eqIndex <= 0) return undefined;
   const flag = arg.slice(0, eqIndex);
@@ -35,7 +35,7 @@ function parseValueFlag(arg: string, flags: Set<string>): string | undefined {
   return arg.slice(eqIndex + 1);
 }
 
-function parseOptionalBooleanFlag(arg: string, flags: Set<string>): boolean | undefined {
+function parseOptionalBooleanFlag(arg: string, flags: Set<string>) {
   const [flag = "", rawValue] = arg.split("=", 2);
   if (!flags.has(flag)) {
     return undefined;
@@ -44,7 +44,7 @@ function parseOptionalBooleanFlag(arg: string, flags: Set<string>): boolean | un
   return rawValue === undefined ? true : parseBooleanFlagValue(rawValue);
 }
 
-export function parseCliArgs(args: string[]): ParsedCliArgs {
+export function parseCliArgs(args: string[]) {
   const firstArg = args[0] ?? "";
   const isSelectCommand = SELECT_COMMANDS.has(firstArg);
   const isRunnerCommand = isSelectCommand || RUN_COMMANDS.has(firstArg);
@@ -84,10 +84,11 @@ export function parseCliArgs(args: string[]): ParsedCliArgs {
     bunArgs.push(arg);
   }
 
-  return { command, bunArgs, verboseReporting, jsonOutput, fileFilter };
+  const parsed: ParsedCliArgs = { command, bunArgs, verboseReporting, jsonOutput, fileFilter };
+  return parsed;
 }
 
-export async function runCli(args: string[]): Promise<number> {
+export async function runCli(args: string[]) {
   const cwd = process.cwd();
   const { command, bunArgs, verboseReporting, jsonOutput, fileFilter } = parseCliArgs(args);
   let discoveredEvalFiles = await discoverEvalFiles(cwd);

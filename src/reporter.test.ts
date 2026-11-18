@@ -180,8 +180,8 @@ describe("reporter variant comparison tables", () => {
   });
 });
 
-function createVerboseTest(name: string, scores: number[]): VerboseTestReport {
-  return {
+function createVerboseTest(name: string, scores: number[]) {
+  const test: VerboseTestReport = {
     testName: name,
     displayName: name,
     passed: true,
@@ -191,10 +191,11 @@ function createVerboseTest(name: string, scores: number[]): VerboseTestReport {
       score,
     })),
   };
+  return test;
 }
 
-function createReport(tests: VerboseTestReport[]): SuiteReport {
-  return {
+function createReport(tests: VerboseTestReport[]) {
+  const report: SuiteReport = {
     suiteName: "verbose suite",
     testCount: tests.length,
     passRate: 1,
@@ -206,9 +207,10 @@ function createReport(tests: VerboseTestReport[]): SuiteReport {
     perTestComparisons: {},
     tests,
   };
+  return report;
 }
 
-function captureLogs(fn: () => void): string {
+function captureLogs(fn: () => void) {
   const log = spyOn(console, "log");
   try {
     fn();
@@ -218,7 +220,7 @@ function captureLogs(fn: () => void): string {
   }
 }
 
-function stripAnsi(value: string): string {
+function stripAnsi(value: string) {
   let output = "";
   let insideAnsiSequence = false;
 

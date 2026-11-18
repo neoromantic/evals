@@ -7,7 +7,7 @@ export interface ReleaseOptions {
   fromRef?: string;
 }
 
-export function parseReleaseArgs(argv: string[]): ReleaseOptions {
+export function parseReleaseArgs(argv: string[]) {
   const options: ReleaseOptions = {
     dryRun: false,
     skipPush: false,
@@ -39,7 +39,7 @@ export function parseReleaseArgs(argv: string[]): ReleaseOptions {
   return options;
 }
 
-function parseReleaseBump(value: string | undefined): VersionBump {
+function parseReleaseBump(value: string | undefined) {
   if (value === "patch" || value === "minor" || value === "major") {
     return value;
   }
