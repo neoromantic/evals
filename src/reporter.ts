@@ -9,9 +9,10 @@ const yellow = (s: string) => `\x1b[33m${s}\x1b[39m`;
 const red = (s: string) => `\x1b[31m${s}\x1b[39m`;
 const cyan = (s: string) => `\x1b[36m${s}\x1b[39m`;
 
+const ANSI_SGR = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
+
 function stripAnsi(s: string): string {
-  // biome-ignore lint/suspicious/noControlCharactersInRegex: ANSI escape sequences use ESC.
-  return s.replace(/\x1b\[[0-9;]*m/g, "");
+  return s.replace(ANSI_SGR, "");
 }
 
 // --- Formatting helpers ---
@@ -789,7 +790,7 @@ function commonAggregateMetrics(entries: VariantSuiteEntry[]): string[] {
 
   const metricSet = new Set(Object.keys(firstEntry.report.aggregates));
   for (const entry of restEntries) {
-    for (const metricName of [...metricSet]) {
+    for (const metricName of metricSet) {
       if (!(metricName in entry.report.aggregates)) {
         metricSet.delete(metricName);
       }
