@@ -7,15 +7,20 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   workflow_dispatch:
+  # Weekly: hygiene scans the full git history for secrets.
+  schedule:
+    - cron: "0 4 * * 1"
 
 permissions: {}
 
+# Every push to main keeps its own run, so each pushed range gets its secret scan.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}${{ github.event_name == 'push' && format('-{0}', github.sha) || '' }}
   cancel-in-progress: true
 
 jobs:
   build:
+    if: github.event_name != 'schedule'
     uses: neoromantic/devkit/.github/workflows/ci-bun.yml@v1
     permissions:
       contents: read
