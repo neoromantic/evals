@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "extends": ["./.oxlintrc.devkit.jsonc"],
+  "rules": {
+    "landmines-style/no-comments": [
+      "error",
+      { "publicApi": ["/src/index\\.ts$", "/src/preload\\.ts$"] }
+    ]
+  }
+}

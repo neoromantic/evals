@@ -135,6 +135,7 @@ async function main() {
     writeFileSync(readmePath, ensureTrailingNewline(draft.readmeContent))
   }
 
+  run("bun", ["run", "format", "package.json", "CHANGELOG.md", "README.md"])
   run("bun", ["run", "typecheck"])
   run("bun", ["run", "test"])
   run("bun", ["run", "build"])
