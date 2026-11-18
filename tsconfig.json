@@ -18,7 +18,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "types": ["bun-types"]
+    "types": ["bun"]
   },
   "include": ["src", "examples"],
   "exclude": ["node_modules", "dist", "src/**/*.test.ts", "scripts"]

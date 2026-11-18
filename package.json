@@ -22,6 +22,8 @@
     "eval:select": "bun src/run.ts select",
     "eval:update": "UPDATE_BASELINE=1 bun src/run.ts",
     "test": "bun test src/*.test.ts scripts/*.test.ts",
+    "check": "bun run typecheck && bun run check:knip",
+    "check:knip": "knip",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo *.tsbuildinfo",
     "prepack": "bun run build",
@@ -67,7 +69,7 @@
     "@types/react": "^19.2.14",
     "ai": "^6.0.116",
     "autoevals": "^0.0.132",
-    "ink-testing-library": "^4.0.0",
+    "knip": "6.45.1",
     "typescript": "^5.9.3",
     "zod": "^4.3.6"
   },
